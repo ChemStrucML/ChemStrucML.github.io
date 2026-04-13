@@ -3,4 +3,15 @@ csml:
   permalink: /csml
   description: Blog posts about CSML
 
+announcements:
+  label: Announcements
+  permalink: /announcements
+  description: Important announcements and updates
+
+open-source:
+  label: Open Source
+  permalink: /open-source
+  description: Blog posts about open-source projects and contributions
+
+
 
