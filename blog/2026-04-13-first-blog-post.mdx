@@ -1,0 +1,48 @@
+---
+slug: introducing-csml
+title: "Introducing CSML: An Open Chemical Structure Markup Language"
+authors: [renfordt]
+tags: [CSML, announcement, open-source]
+---
+
+Anyone who has worked with chemical structure data professionally knows the feeling: you have a molecule, and you need to move it between systems. Maybe you want to render it, store it, share it with a colleague, or feed it into a processing pipeline. What follows is an exercise in format archaeology — SMILES strings that look like line noise, MOL files with fixed-width columns and implicit rules nobody documented, or sprawling CML that nobody's tool quite agrees on.
+
+This experience, repeated across too many projects, is what led to CSML.
+
+{/* truncate */}
+
+## Why Another Format?
+
+The honest answer is that no existing format does all of what we needed without significant compromises. SMILES is compact and widely supported, but it is not something a human writes comfortably by hand, and subtle differences between tool implementations create real interoperability problems. MOL and SDF are the workhorses of professional cheminformatics software, but they were designed for software, not people — and they have no real support for polymers. CML made the right call going XML and aiming for human-readability, but its specification grew large and inconsistent, and adoption across tooling is patchy at best.
+
+The gap we kept running into was the same: no format that is simultaneously human-readable, fully open, handles polymers as a first-class concern, and cleanly separates what a molecule *is* from how it should be *displayed* or *positioned in space*.
+
+## The Design Philosophy
+
+CSML is built on a few strong opinions.
+
+The most important one is the separation of **topology**, **geometry**, and **presentation** into distinct, independently valid layers. A CSML document describing which atoms exist and how they connect is complete on its own — you do not need to specify coordinates to describe a molecule. Geometry and presentation are optional additions on top. This means the same document can drive a 2D renderer, a 3D viewer, or a graph algorithm without adaptation.
+
+The second is explicitness. Every atom, every bond, every property is declared. Nothing is inferred from implicit valence rules or convention. If you have never worked with chemical formats before, you can open a CSML file and understand what it says.
+
+The third is openness. No extensions, no vendor-specific features, no specification behind a paywall. The full grammar is [documented and public](/docs/specification).
+
+## What Is in v0.1
+
+The initial release covers the core of what most molecular work requires: atoms with element, charge, isotope, and stereocenter declarations; bonds with explicit order; ring systems including aromatic rings; full stereochemistry support including chirality and E/Z double bonds; polymer repeat units for macromolecules and copolymers; composable molecular fragments; and support for multiple molecules in a single file.
+
+For a full walkthrough of the format and how it compares to alternatives, see the [Introduction](/docs/introduction).
+
+## The First Implementation
+
+Alongside the specification, we are releasing **[CSML-PHP](https://github.com/ChemStrucML/CSML-PHP)** — a PHP 8.4+ parser and SVG renderer for CSML documents, installable via Composer:
+
+```bash
+composer require chemstrucml/csml-parser
+```
+
+It supports all current CSML features and exposes a configurable rendering pipeline via `RenderConfig`. A Python implementation is in progress for the cheminformatics community, and format converters (SMILES → CSML, MOL → CSML) are planned.
+
+## Get Involved
+
+Everything is open source and developed at [github.com/ChemStrucML](https://github.com/ChemStrucML). If you work with molecular data and have opinions about what a format like this should support, we would like to hear from you. Open an issue, propose an extension, or just try it and tell us where it falls short.
