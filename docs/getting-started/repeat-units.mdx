@@ -1,0 +1,179 @@
+---
+sidebar_position: 7
+---
+
+# Repeat Units
+
+Repeat units are CSML's core feature for describing polymers, oligomers, and any structure with a repeating pattern. A repeat unit is declared once and can be expanded any number of times — including symbolically with a variable like `n`.
+
+## `<repeat>` — declaring a repeat unit
+
+```xml
+<repeat id="ru1" n="n" end-groups="open">
+
+  <atom id="C1" element="C" />
+  <atom id="C2" element="C" />
+  <bond from="C1" to="C2" order="single" />
+
+  <!-- how each copy connects to the next -->
+  <connector head="C1" tail="C2" bond-order="single" />
+
+</repeat>
+```
+
+### `<repeat>` attributes
+
+| Attribute    | Required | Description |
+|--------------|----------|-------------|
+| `id`         | yes      | Unique identifier for this repeat unit |
+| `n`          | yes      | Repetition count: a positive integer, or a variable (`"n"`, `"m"`) |
+| `end-groups` | no       | What to put at the chain ends: `open`, `capped`, or `cyclic` |
+| `label`      | no       | Display label (e.g. `"monomer A"`) |
+
+## `<connector>` — how units link together
+
+The `<connector>` element defines the head and tail connection points of the repeat unit.
+
+```xml
+<connector head="C1" tail="C2" bond-order="single" />
+```
+
+- **`head`** — the atom that bonds to the **tail** of the *previous* unit (or the head end-group)
+- **`tail`** — the atom that bonds to the **head** of the *next* unit (or the tail end-group)
+
+When the polymer is expanded, the parser creates a bond from `unit[i].tail` to `unit[i+1].head` for each repetition.
+
+## End groups — `<cap>`
+
+By default, `end-groups="open"` leaves dangling bonds at both ends (common for abstract polymer notation). To cap the ends with specific atoms or groups, use `end-groups="capped"` and add `<cap>` elements.
+
+```xml
+<repeat id="pe" n="n" end-groups="capped">
+
+  <atom id="C1" element="C" />
+  <atom id="C2" element="C" />
+  <bond from="C1" to="C2" order="single" />
+  <connector head="C1" tail="C2" bond-order="single" />
+
+  <!-- hydrogen cap at the head end -->
+  <cap position="head">
+    <atom id="H_head" element="H" />
+    <bond from="H_head" to="C1" order="single" />
+  </cap>
+
+  <!-- hydroxyl cap at the tail end -->
+  <cap position="tail">
+    <atom id="O_tail" element="O" />
+    <atom id="H_tail" element="H" />
+    <bond from="C2" to="O_tail" order="single" />
+    <bond from="O_tail" to="H_tail" order="single" />
+  </cap>
+
+</repeat>
+```
+
+For ring-closing polymers (cyclic oligomers), use `end-groups="cyclic"`. The parser bonds the tail of the last unit directly to the head of the first unit.
+
+## Nested repeats — block copolymers
+
+Repeat units can be combined into sequences, enabling block copolymers and other multi-block architectures.
+
+```xml
+<repeat id="block_a" n="n">
+  <atom id="A1" element="C" />
+  <atom id="A2" element="C" />
+  <bond from="A1" to="A2" order="single" />
+  <connector head="A1" tail="A2" bond-order="single" />
+</repeat>
+
+<repeat id="block_b" n="m">
+  <atom id="B1" element="C" />
+  <atom id="B2" element="N" />
+  <bond from="B1" to="B2" order="single" />
+  <connector head="B1" tail="B2" bond-order="single" />
+</repeat>
+
+<!-- ABA triblock copolymer -->
+<sequence>
+  <segment ref="block_a" />
+  <segment ref="block_b" />
+  <segment ref="block_a" />
+</sequence>
+```
+
+## `<copolymer>` — statistical and alternating patterns
+
+The `<copolymer>` element describes how multiple repeat units are combined when exact sequence order is not specified.
+
+```xml
+<!-- Alternating copolymer: –A–B–A–B–… -->
+<copolymer pattern="alternating">
+  <unit ref="ru_a" />
+  <unit ref="ru_b" />
+</copolymer>
+
+<!-- Random (statistical) copolymer with a 60:40 composition ratio -->
+<copolymer pattern="random" ratio="0.6:0.4">
+  <unit ref="ru_a" />
+  <unit ref="ru_b" />
+</copolymer>
+
+<!-- Block copolymer: n units of A followed by m units of B -->
+<copolymer pattern="block">
+  <unit ref="ru_a" n="n" />
+  <unit ref="ru_b" n="m" />
+</copolymer>
+```
+
+### Copolymer pattern values
+
+| `pattern`     | Meaning |
+|---------------|---------|
+| `alternating` | Strict A–B–A–B–… sequence |
+| `random`      | Statistical distribution at the specified `ratio` |
+| `block`       | Contiguous blocks of each monomer type |
+| `graft`       | Side-chain polymer (use `<branch>` inside units; see [Branching](./branching)) |
+
+## Complete example — Nylon-6,6
+
+```xml
+<csml version="0.1">
+  <meta>
+    <description>Nylon-6,6 repeat unit</description>
+  </meta>
+
+  <molecule id="nylon66" name="Nylon-6,6">
+
+    <repeat id="ru_nylon66" n="n" end-groups="open" label="Nylon-6,6 repeat unit">
+
+      <!-- Hexamethylene diamine fragment -->
+      <atom id="N1" element="N" />
+      <atom-list element="C" prefix="Ca" from="1" to="6" />
+
+      <!-- Adipic acid fragment -->
+      <atom id="C_co" element="C" />
+      <atom id="O1"   element="O" />
+      <atom id="N2"   element="N" />
+      <atom-list element="C" prefix="Cb" from="1" to="4" />
+      <atom id="C_co2" element="C" />
+      <atom id="O2"    element="O" />
+
+      <!-- Amide bond 1 -->
+      <bond from="N1"    to="C_co"  order="single" />
+      <bond from="C_co"  to="O1"    order="double" />
+
+      <!-- Methylene chain -->
+      <bond-chain atoms="C_co Ca1 Ca2 Ca3 Ca4 Ca5 Ca6" order="single" />
+      <bond-chain atoms="Ca6 N2" order="single" />
+
+      <!-- Amide bond 2 -->
+      <bond from="N2"    to="C_co2" order="single" />
+      <bond from="C_co2" to="O2"    order="double" />
+      <bond-chain atoms="C_co2 Cb1 Cb2 Cb3 Cb4" order="single" />
+
+      <connector head="N1" tail="Cb4" bond-order="single" />
+    </repeat>
+
+  </molecule>
+</csml>
+```

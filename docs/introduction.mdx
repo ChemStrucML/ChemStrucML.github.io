@@ -1,0 +1,93 @@
+---
+sidebar_position: 1
+---
+
+# Introduction
+
+**CSML (Chemical Structure Markup Language)** is an open, XML-based format for describing molecular structures. It is designed to be readable and writable by anyone — you do not need a chemistry degree or special software to work with a CSML file. If you can read XML, you can read CSML.
+
+Whether you are a professional chemist, a student, a developer building chemistry tooling, or simply someone curious about molecules, CSML gives you a straightforward way to describe chemical structures in plain text.
+
+## The Core Design
+
+Most chemical formats were designed for software tools, not for people. CSML is different: it keeps the structure explicit and the grammar predictable, with no hidden rules or implicit behaviour.
+
+CSML also separates three concerns that other formats mix together:
+
+- **Topology** — what atoms exist and how they are connected (bonds, rings, stereochemistry)
+- **Geometry** — spatial information such as bond lengths, angles, and 2D/3D coordinates
+- **Presentation** — rendering decisions such as wedge bonds, hydrogen display, and layout
+
+A topology description is valid on its own. Geometry and presentation are optional additions. This means the same CSML document can power a 2D renderer, a 3D viewer, or a graph-processing tool — without re-encoding the structure.
+
+## Why Not an Existing Format?
+
+Existing formats each make trade-offs that make them harder to use outside of specific toolchains:
+
+| Format   | Human-readable | Polymer support | Topology/Geometry split | Fully open spec |
+|----------|----------------|-----------------|-------------------------|-----------------|
+| SMILES   | Partial        | Limited         | No                      | Yes             |
+| MOL/SDF  | No             | No              | No                      | Partial         |
+| CML      | Yes            | Partial         | No                      | Yes             |
+| InChI    | No             | No              | No                      | Yes             |
+| **CSML** | **Yes**        | **Yes**         | **Yes**                 | **Yes**         |
+
+**SMILES** strings are compact but hard to read and write by hand. Aromaticity, ring closures, and stereochemistry rely on conventions that vary across tools.
+
+**MOL/SDF** files are widely used in professional software but are not human-friendly, have no fully open specification, and only support small molecules — polymers require workarounds.
+
+**CML (Chemical Markup Language)** is XML-based and human-readable, but the specification is large, inconsistently implemented across tools, and does not cleanly separate topology from geometry.
+
+**InChI** is a canonical identifier — useful for comparing molecules, but not something you can write by hand or use to describe structure for rendering or processing.
+
+CSML fills a gap: a minimal, fully open format where everything is declared explicitly and there are no surprises.
+
+## Key Features
+
+- **Plain XML** — readable in any text editor, no special viewer required
+- **Explicit atoms and bonds** — element, charge, isotope, and stereocenters declared per atom; nothing is implicit
+- **Polymer support** — first-class repeat units for macromolecules and copolymers
+- **Ring systems** — aromatic and non-aromatic rings, including inscribed-circle notation
+- **Stereochemistry** — chirality (R/S), wedge/hatch bonds, E/Z double bonds
+- **Composable fragments** — molecules built from reusable groups and sub-structures
+- **Multiple molecules per file** — reactions, mixtures, and fragment libraries in one document
+- **Fully open spec** — no proprietary extensions, no vendor lock-in
+
+## Quick Example
+
+Here is a minimal ethanol molecule. Only topology is needed — no geometry required:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<csml version="0.1">
+  <molecule id="ethanol" name="Ethanol">
+    <atom id="C1" element="C" />
+    <atom id="C2" element="C" />
+    <atom id="O1" element="O" />
+    <bond from="C1" to="C2" order="single" />
+    <bond from="C2" to="O1" order="single" />
+  </molecule>
+</csml>
+```
+
+The full grammar — including geometry, stereochemistry, and repeat units — is defined in the [Specification](./specification.mdx).
+
+## Integrations
+
+### [CSML-PHP](https://github.com/ChemStrucML/CSML-PHP)
+
+A PHP 8.4+ parser and SVG renderer for CSML documents.
+
+```bash
+composer require chemstrucml/csml-parser
+```
+
+Supports all core CSML features including atoms, bonds, ring systems, polymer repeat units, and stereochemistry. Rendering is configurable via `RenderConfig` (bond length, font size, padding, hydrogen display, and more).
+
+### CSML-Python *(planned)*
+
+A Python parser and renderer for CSML. Intended to bring the same capabilities to the Python/cheminformatics ecosystem.
+
+### Further Projects *(planned)*
+
+Additional language bindings, converters (e.g. SMILES → CSML, MOL → CSML), and editor tooling are planned. Contributions and proposals are welcome via the [GitHub organisation](https://github.com/ChemStrucML).

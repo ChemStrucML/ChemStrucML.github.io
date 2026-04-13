@@ -1,0 +1,135 @@
+---
+sidebar_position: 6
+---
+
+# Groups and Fragments
+
+CSML lets you package atoms and bonds into reusable named units called **groups**. A group can represent a functional group, a building block, or any recurring substructure. Once defined, a group can be referenced and attached to a molecule multiple times without repeating its full definition.
+
+## `<group>` — defining a named substructure
+
+```xml
+<group id="hydroxyl" name="Hydroxyl (-OH)">
+  <atom id="O" element="O" />
+  <atom id="H" element="H" />
+  <bond from="O" to="H" order="single" />
+  <anchor atom="O" />
+</group>
+```
+
+The `<anchor>` element marks the atom that serves as the connection point — the atom that bonds to the rest of the molecule when the group is used.
+
+A group can have multiple anchors if it can attach at more than one point (e.g. a bridging ligand).
+
+## `<group-ref>` — using a group
+
+To attach a group to a molecule, use `<group-ref>`:
+
+```xml
+<group-ref ref="hydroxyl" id="oh1">
+  <attach anchor="O" to="C6" bond-order="single" />
+</group-ref>
+```
+
+| Attribute | Description |
+|-----------|-------------|
+| `ref`     | The `id` of the `<group>` to instantiate |
+| `id`      | A unique identifier for this particular instance of the group |
+
+The `<attach>` child specifies:
+- `anchor` — which atom in the group forms the new bond
+- `to` — which atom in the parent molecule it bonds to
+- `bond-order` — the type of bond (`single`, `double`, etc.)
+
+### Atom scoping
+
+Each `<group-ref>` creates an independent copy of the group. The atoms inside are scoped as `{ref-id}.{atom-id}`. In the example above, the oxygen is accessible as `oh1.O` and the hydrogen as `oh1.H`.
+
+This prevents id collisions when the same group is used multiple times.
+
+### Attaching the same group twice
+
+```xml
+<!-- 1,4-diol: hydroxyl groups on C1 and C4 -->
+<group-ref ref="hydroxyl" id="oh_head">
+  <attach anchor="O" to="C1" bond-order="single" />
+</group-ref>
+
+<group-ref ref="hydroxyl" id="oh_tail">
+  <attach anchor="O" to="C4" bond-order="single" />
+</group-ref>
+```
+
+## `<fragment-library>` — standard functional groups
+
+CSML defines a standard library of common functional groups that parsers should recognise without requiring an explicit `<group>` definition. Reference them with the `std:` prefix.
+
+```xml
+<fragment-library>
+  <group id="std:hydroxyl"  formula="-OH" />
+  <group id="std:amino"     formula="-NH₂" />
+  <group id="std:carboxyl"  formula="-COOH" />
+  <group id="std:carbonyl"  formula=">C=O" />
+  <group id="std:methyl"    formula="-CH₃" />
+  <group id="std:methylene" formula="-CH₂-" />
+  <group id="std:amide"     formula="-CONH-" />
+  <group id="std:phenyl"    formula="-C₆H₅" />
+  <group id="std:ester"     formula="-COO-" />
+</fragment-library>
+```
+
+Using a standard group:
+
+```xml
+<group-ref ref="std:carboxyl">
+  <attach anchor="C" to="C6" bond-order="single" />
+</group-ref>
+```
+
+Because these are built into the specification, a parser that supports the standard library can expand them without any explicit `<group>` definition in the file.
+
+## Complete example — amino acid backbone
+
+```xml
+<csml version="0.1">
+
+  <!-- Define functional groups -->
+  <group id="amino" name="Amino (-NH₂)">
+    <atom id="N" element="N" />
+    <atom id="H1" element="H" />
+    <atom id="H2" element="H" />
+    <bond from="N" to="H1" order="single" />
+    <bond from="N" to="H2" order="single" />
+    <anchor atom="N" />
+  </group>
+
+  <group id="carboxyl" name="Carboxyl (-COOH)">
+    <atom id="C" element="C" />
+    <atom id="O1" element="O" />
+    <atom id="O2" element="O" />
+    <atom id="H" element="H" />
+    <bond from="C" to="O1" order="double" />
+    <bond from="C" to="O2" order="single" />
+    <bond from="O2" to="H" order="single" />
+    <anchor atom="C" />
+  </group>
+
+  <molecule id="glycine" name="Glycine">
+    <atom id="Ca" element="C" />
+    <atom id="Cb" element="C" />
+
+    <bond from="Ca" to="Cb" order="single" />
+
+    <!-- Attach -NH₂ to Ca -->
+    <group-ref ref="amino" id="amine1">
+      <attach anchor="N" to="Ca" bond-order="single" />
+    </group-ref>
+
+    <!-- Attach -COOH to Cb -->
+    <group-ref ref="carboxyl" id="acid1">
+      <attach anchor="C" to="Cb" bond-order="single" />
+    </group-ref>
+  </molecule>
+
+</csml>
+```

@@ -1,0 +1,150 @@
+---
+sidebar_position: 8
+---
+
+# Branching
+
+Branching describes side chains that deviate from a main linear structure. In CSML, branches are declared explicitly using the `<branch>` element. A branch can contain atoms, bonds, rings, groups, repeat units, or even further nested branches.
+
+## `<branch>` — declaring a side chain
+
+```xml
+<atom id="C3" element="C" />
+
+<branch from="C3">
+  <atom id="B1" element="C" />
+  <atom id="B2" element="C" />
+  <bond from="C3" to="B1" order="single" />
+  <bond from="B1" to="B2" order="single" />
+</branch>
+```
+
+The `from` attribute references the atom in the main chain where the branch originates. All atoms and bonds declared inside `<branch>` belong to the branch.
+
+Atom `id` values inside a branch must still be unique within the entire molecule.
+
+## Nested branches
+
+Branches can contain further `<branch>` elements, allowing arbitrarily complex tree-shaped structures.
+
+```xml
+<branch from="C3">
+  <atom id="B1" element="C" />
+  <bond from="C3" to="B1" order="single" />
+
+  <!-- Second-order branch from B1 -->
+  <branch from="B1">
+    <atom id="B1a" element="C" />
+    <atom id="B1b" element="C" />
+    <bond from="B1" to="B1a" order="single" />
+    <bond from="B1a" to="B1b" order="single" />
+  </branch>
+</branch>
+```
+
+## Branches with rings and groups
+
+A branch may contain any element that a molecule can contain, including ring systems and group references.
+
+```xml
+<!-- A phenyl side chain -->
+<atom id="C3" element="C" />
+
+<branch from="C3">
+  <atom-list element="C" prefix="Ph" from="1" to="6" />
+  <bond from="C3" to="Ph1" order="single" />
+
+  <ring id="phenyl_ring" size="6" aromatic="true">
+    <member atom="Ph1" /><member atom="Ph2" /><member atom="Ph3" />
+    <member atom="Ph4" /><member atom="Ph5" /><member atom="Ph6" />
+  </ring>
+</branch>
+```
+
+## Graft copolymers
+
+For graft polymers, use `<branch>` inside a `<repeat>` unit to describe the side-chain polymer. Then reference the repeat unit in a `<copolymer pattern="graft">` block.
+
+```xml
+<repeat id="backbone_unit" n="n">
+  <atom id="C1" element="C" />
+  <atom id="C2" element="C" />
+  <bond from="C1" to="C2" order="single" />
+  <connector head="C1" tail="C2" bond-order="single" />
+
+  <!-- side chain grafted from C1 -->
+  <branch from="C1">
+    <repeat id="side_chain" n="m">
+      <atom id="S1" element="C" />
+      <atom id="S2" element="O" />
+      <bond from="S1" to="S2" order="single" />
+      <connector head="S1" tail="S2" bond-order="single" />
+    </repeat>
+  </branch>
+</repeat>
+```
+
+## Crosslinks
+
+Crosslinks connect atoms that belong to different polymer chains or distant parts of the same structure. Use `<crosslink>` and reference atoms using the `{molecule-id}.{atom-id}` or `{repeat-id}.{atom-id}` scoping syntax.
+
+```xml
+<!-- Covalent crosslink between two polymer chains -->
+<crosslink from="polymer_a.C5" to="polymer_b.C8" order="single" />
+```
+
+Crosslinks are common in thermosets (e.g. epoxy resins), vulcanised rubber, and crosslinked hydrogels.
+
+## Complete example — 2-methylbutane (isopentane)
+
+```
+CH₃–CH(CH₃)–CH₂–CH₃
+```
+
+```xml
+<csml version="0.1">
+  <molecule id="isopentane" name="2-Methylbutane">
+
+    <!-- Main chain: C1–C2–C3–C4 -->
+    <atom id="C1" element="C" />
+    <atom id="C2" element="C" />
+    <atom id="C3" element="C" />
+    <atom id="C4" element="C" />
+
+    <bond from="C1" to="C2" order="single" />
+    <bond from="C2" to="C3" order="single" />
+    <bond from="C3" to="C4" order="single" />
+
+    <!-- Methyl branch at C2 -->
+    <branch from="C2">
+      <atom id="C5" element="C" />
+      <bond from="C2" to="C5" order="single" />
+    </branch>
+
+    <!-- Implicit hydrogens fill remaining valences -->
+
+  </molecule>
+</csml>
+```
+
+## Complete example — isobutylene (2-methylpropene)
+
+```xml
+<csml version="0.1">
+  <molecule id="isobutylene" name="2-Methylpropene">
+
+    <atom id="C1" element="C" />
+    <atom id="C2" element="C" />
+    <atom id="C3" element="C" />
+
+    <bond from="C1" to="C2" order="double" />
+
+    <branch from="C2">
+      <atom id="C4" element="C" />
+      <bond from="C2" to="C3" order="single" />
+      <bond from="C2" to="C4" order="single" />
+    </branch>
+
+  </molecule>
+</csml>
+```

@@ -1,0 +1,83 @@
+---
+sidebar_position: 1
+---
+
+# Document Structure
+
+Every CSML file is a well-formed XML document. The root element is `<csml>`, and all content lives inside it.
+
+## Minimal skeleton
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<csml version="0.1">
+  <molecule id="my-molecule" name="My Molecule">
+    <!-- atoms, bonds, geometry, groups, … -->
+  </molecule>
+</csml>
+```
+
+The `version` attribute on `<csml>` declares which version of the specification the file conforms to. For the current release it is always `"0.1"`.
+
+## Multiple molecules
+
+A single CSML file may contain more than one `<molecule>` block. This is useful for reactions, mixtures, fragment libraries, or simply grouping related structures together.
+
+```xml
+<csml version="0.1">
+  <molecule id="reactant" name="Acetic acid">
+    <!-- … -->
+  </molecule>
+  <molecule id="product" name="Ethyl acetate">
+    <!-- … -->
+  </molecule>
+</csml>
+```
+
+Each molecule has its own independent atom/bond namespace. An `id` attribute on `<atom>` only needs to be unique within its own `<molecule>`.
+
+## The `<meta>` element
+
+An optional `<meta>` block can appear before the first `<molecule>` to record authorship and provenance.
+
+```xml
+<csml version="0.1">
+  <meta>
+    <author>Jane Doe</author>
+    <created>2026-03-26</created>
+    <description>Nylon-6,6 repeat unit</description>
+    <source>Manual entry</source>
+  </meta>
+
+  <molecule id="nylon66" name="Nylon-6,6">
+    <!-- … -->
+  </molecule>
+</csml>
+```
+
+None of the `<meta>` child elements are required. Include only the ones that are useful for your workflow.
+
+## `<molecule>` attributes
+
+| Attribute | Required | Description |
+|-----------|----------|-------------|
+| `id`      | yes      | Unique identifier for this molecule within the file |
+| `name`    | no       | Human-readable display name |
+
+## What goes inside `<molecule>`
+
+The interior of a `<molecule>` is where the actual chemistry lives. The elements it can contain are covered in the remaining topics:
+
+- [Atoms](./atoms) — declare every atom with its element, charge, isotope, and stereochemistry
+- [Bonds](./bonds) — connect atoms with typed bonds
+- [Geometry](./geometry) — add optional coordinates, angles, and lengths
+- [Ring Systems](./ring-systems) — describe aromatic and fused ring systems
+- [Groups and Fragments](./groups-and-fragments) — package reusable sub-structures
+- [Repeat Units](./repeat-units) — define polymer and oligomer repeating patterns
+- [Branching](./branching) — attach side chains and describe crosslinks
+
+## Validity rules
+
+- The file must be valid XML — all elements must be closed, attributes must be quoted, and special characters (`<`, `>`, `&`) must be escaped.
+- Broken internal links (e.g. a `<bond from="X">` where atom `X` does not exist) are parser errors.
+- The `id` of each `<molecule>` must be unique within the file.

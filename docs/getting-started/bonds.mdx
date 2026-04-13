@@ -1,0 +1,112 @@
+---
+sidebar_position: 3
+---
+
+# Bonds
+
+Bonds connect exactly two atoms. In CSML, every bond is declared explicitly using a `<bond>` element.
+
+## Basic declaration
+
+```xml
+<bond from="C1" to="C2" order="single" />
+<bond from="C1" to="O1" order="double" />
+<bond from="N1" to="C2" order="triple" />
+```
+
+The `from` and `to` attributes reference atom `id` values declared elsewhere in the same molecule.
+
+## All `<bond>` attributes
+
+| Attribute | Required | Description |
+|-----------|----------|-------------|
+| `from`    | yes      | `id` of the first atom |
+| `to`      | yes      | `id` of the second atom |
+| `order`   | yes      | Bond type (see table below) |
+| `stereo`  | no       | Geometric isomerism: `E`, `Z`, `cis`, `trans`, or `none` |
+| `id`      | no       | Optional unique identifier for the bond itself |
+| `display` | no       | Rendering hint: `solid`, `dashed`, `wedge`, `hatch` |
+
+### Bond orders
+
+| Value      | Meaning |
+|------------|---------|
+| `single`   | Standard single bond (σ) |
+| `double`   | Standard double bond (σ + π) |
+| `triple`   | Triple bond (σ + 2π) |
+| `aromatic` | Delocalised bond inside a ring system (see [Ring Systems](./ring-systems)) |
+| `dative`   | Coordinate/dative bond; `from` is the electron donor |
+| `hydrogen` | Explicit hydrogen bond (intra- or intermolecular) |
+| `any`      | Wildcard for query or template structures |
+
+### Stereo on double bonds
+
+```xml
+<bond from="C2" to="C3" order="double" stereo="E" />
+<bond from="C2" to="C3" order="double" stereo="Z" />
+```
+
+Use `stereo` only on `double` bonds where geometric isomerism exists. `E`/`Z` and `cis`/`trans` are both accepted.
+
+### Display hints
+
+```xml
+<bond from="C1" to="H1" order="single" display="wedge" />  <!-- coming out of page -->
+<bond from="C1" to="H2" order="single" display="hatch" />  <!-- going into page -->
+```
+
+`display` is a presentation hint for renderers. It does not affect topology or geometry.
+
+## Dative bonds
+
+A dative bond is one where both electrons come from the same atom (the donor). Mark the donor with `from`:
+
+```xml
+<!-- Nitrogen donates to boron -->
+<bond from="N1" to="B1" order="dative" />
+```
+
+## `<bond-chain>` shorthand
+
+For a linear sequence of identical bonds between consecutive atoms, use `<bond-chain>`:
+
+```xml
+<!-- Creates C1–C2, C2–C3, C3–C4, C4–C5, C5–C6 as single bonds -->
+<bond-chain atoms="C1 C2 C3 C4 C5 C6" order="single" />
+```
+
+The `atoms` attribute contains a space-separated list of atom ids. The parser creates a bond between each consecutive pair. All bonds in the chain share the same `order`.
+
+`<bond-chain>` cannot mix bond types. For chains with alternating or varied bonds, write them individually.
+
+## Complete example — ethanol
+
+Building on the atoms declared in the [Atoms](./atoms) page:
+
+```xml
+<molecule id="ethanol" name="Ethanol">
+  <atom id="C1" element="C" />
+  <atom id="C2" element="C" />
+  <atom id="O1" element="O" />
+
+  <bond from="C1" to="C2" order="single" />
+  <bond from="C2" to="O1" order="single" />
+  <!-- implicit-h="auto" fills C1 with 3 H, C2 with 2 H, O1 with 1 H -->
+</molecule>
+```
+
+## Complete example — but-2-ene (E/Z isomers)
+
+```xml
+<!-- (E)-but-2-ene -->
+<molecule id="e-but2ene" name="(E)-But-2-ene">
+  <atom id="C1" element="C" />
+  <atom id="C2" element="C" />
+  <atom id="C3" element="C" />
+  <atom id="C4" element="C" />
+
+  <bond from="C1" to="C2" order="single" />
+  <bond from="C2" to="C3" order="double" stereo="E" />
+  <bond from="C3" to="C4" order="single" />
+</molecule>
+```

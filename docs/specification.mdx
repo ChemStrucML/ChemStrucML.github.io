@@ -1,0 +1,1055 @@
+# CSML Specification
+
+:::info
+
+The latest version of the specification is available in the [GitHub repository](https://github.com/ChemStrucML/CSML/blob/main/SPECIFICATION.MD). We try to keep the specification in this documentation up-to-date with the latest changes.
+
+:::
+
+## Version 0.1 — Language Specification
+
+:::warning
+
+CSML is currently in active development and this specification should therefore be considered a draft.
+
+:::
+
+---
+
+## 1. Design Philosophy
+
+CSML is an XML-based markup language for describing molecular structures with full topological, geometric, and repeating-unit information. It is designed to be:
+
+- **Human-readable**: A chemist should be able to read and write it by hand.
+- **Unambiguous**: Every atom, bond, and spatial relationship is explicit.
+- **Composable**: Molecules are built from reusable fragments, groups, and repeat units.
+- **Parser-friendly**: Clean, predictable grammar with no implicit rules.
+
+CSML separates **topology** (what is connected to what) from **geometry** (angles, lengths, orientation) and from **presentation** (how to draw it). This spec covers the first two.
+
+---
+
+## 2. Document Structure
+
+Every CSML file is a well-formed XML document with `<csml>` as its root element.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<csml version="0.1">
+  <meta>
+    <!-- optional metadata -->
+  </meta>
+  <molecule id="..." name="...">
+    <!-- atoms, bonds, geometry, groups -->
+  </molecule>
+</csml>
+```
+
+A single file may contain multiple `<molecule>` blocks (e.g. a reaction, a mixture, or a library of fragments).
+
+### 2.1 `<meta>` (optional)
+
+```xml
+<meta>
+  <author>Jane Doe</author>
+  <created>2026-03-26</created>
+  <description>Nylon-6,6 repeat unit</description>
+  <source>Manual entry</source>
+</meta>
+```
+
+---
+
+## 3. Atoms
+
+### 3.1 `<atom>` Element
+
+Every atom in the structure is declared explicitly.
+
+```xml
+<atom id="C1" element="C" />
+<atom id="O1" element="O" />
+<atom id="H1" element="H" />
+```
+
+| Attribute    | Required | Description                                             |
+|--------------|----------|---------------------------------------------------------|
+| `id`         | yes      | Unique identifier within the molecule scope             |
+| `element`    | yes      | Chemical symbol (`C`, `N`, `O`, `H`, `Fe`, …)           |
+| `isotope`    | no       | Mass number (e.g. `isotope="14"` for ¹⁴C)               |
+| `charge`     | no       | Formal charge as signed integer (`+1`, `-1`)            |
+| `radical`    | no       | Unpaired electrons: `singlet`, `doublet`, `triplet`     |
+| `chirality`  | no       | `R`, `S`, or `none` (CIP convention)                    |
+| `label`      | no       | Human-readable label for display (e.g. `"Cα"`)          |
+| `implicit-h` | no       | Integer. Number of implicit hydrogens (default: `auto`) |
+
+#### Implicit Hydrogens
+
+By default, `implicit-h="auto"` tells the parser to fill hydrogens to satisfy the atom's standard valence. Set `implicit-h="0"` to suppress this and declare every hydrogen explicitly.
+
+```xml
+<!-- Methane: explicit -->
+<atom id="C1" element="C" implicit-h="0" />
+<atom id="H1" element="H" />
+<atom id="H2" element="H" />
+<atom id="H3" element="H" />
+<atom id="H4" element="H" />
+
+<!-- Methane: implicit (equivalent) -->
+<atom id="C1" element="C" implicit-h="4" />
+```
+
+### 3.2 `<atom-list>` Shorthand
+
+For repetitive declarations (e.g. a chain of carbons), CSML provides a bulk shorthand.
+
+```xml
+<!-- Declares C1, C2, C3, C4, C5, C6 as carbon atoms -->
+<atom-list element="C" prefix="C" from="1" to="6" />
+```
+
+This is syntactic sugar — parsers must expand it into individual `<atom>` elements internally.
+
+---
+
+## 4. Bonds
+
+### 4.1 `<bond>` Element
+
+A bond connects exactly two atoms.
+
+```xml
+<bond from="C1" to="C2" order="single" />
+<bond from="C1" to="O1" order="double" />
+```
+
+| Attribute | Required | Description                                                           |
+|-----------|----------|-----------------------------------------------------------------------|
+| `from`    | yes      | `id` of the first atom                                                |
+| `to`      | yes      | `id` of the second atom                                               |
+| `order`   | yes      | `single`, `double`, `triple`, `aromatic`, `dative`, `hydrogen`, `any` |
+| `stereo`  | no       | `E`, `Z`, `cis`, `trans`, `none` (for double bonds)                   |
+| `id`      | no       | Optional unique id for the bond itself                                |
+| `display` | no       | Hint: `solid`, `dashed`, `wedge`, `hatch`                             |
+
+#### Bond Order Notes
+
+- `aromatic` — Used inside ring systems to denote delocalised bonding (see §6).
+- `dative` — Coordinate/dative bond (e.g. in metal complexes). `from` is the donor.
+- `hydrogen` — Explicit hydrogen bond (intermolecular or intramolecular).
+- `any` — Wildcard for query/template structures ("any bond type here").
+
+### 4.2 `<bond-chain>` Shorthand
+
+For linear chains, a shorthand avoids writing every single bond:
+
+```xml
+<!-- Equivalent to C1–C2, C2–C3, C3–C4, C4–C5, C5–C6 all as single bonds -->
+<bond-chain atoms="C1 C2 C3 C4 C5 C6" order="single" />
+```
+
+This creates bonds between each consecutive pair.
+
+---
+
+## 5. Geometry
+
+Geometry is **optional** and layered on top of topology. A CSML file is valid without any geometry — it then describes connectivity only (a molecular graph).
+
+### 5.1 `<coordinates>` — Explicit Positioning
+
+Absolute 2D or 3D positions for atoms.
+
+```xml
+<coordinates dimension="2d">
+  <point atom="C1" x="0.0"   y="0.0" />
+  <point atom="C2" x="1.54"  y="0.0" />
+  <point atom="C3" x="2.31"  y="1.33" />
+</coordinates>
+```
+
+For 3D, add `dimension="3d"` and include `z`:
+
+```xml
+<coordinates dimension="3d">
+  <point atom="C1" x="0.0" y="0.0" z="0.0" />
+</coordinates>
+```
+
+Units default to Ångströms. Override with `units="pm"` or `units="nm"`.
+
+### 5.2 `<angle>` — Bond Angles
+
+Declares the angle between three atoms (vertex is the middle atom).
+
+```xml
+<!-- The C1–C2–C3 angle is 112° -->
+<angle atoms="C1 C2 C3" value="112.0" unit="deg" />
+```
+
+### 5.3 `<torsion>` — Dihedral Angles
+
+Declares a dihedral (torsion) angle across four atoms.
+
+```xml
+<!-- C1–C2–C3–C4 dihedral is 180° (anti conformation) -->
+<torsion atoms="C1 C2 C3 C4" value="180.0" unit="deg" />
+```
+
+### 5.4 `<length>` — Bond Lengths
+
+```xml
+<length atoms="C1 C2" value="1.54" unit="angstrom" />
+```
+
+### 5.5 Geometry Constraint Blocks
+
+Multiple geometry statements can be grouped for readability:
+
+```xml
+<geometry>
+  <angle atoms="C1 C2 C3" value="109.5" />
+  <angle atoms="C2 C3 C4" value="109.5" />
+  <torsion atoms="C1 C2 C3 C4" value="180.0" />
+</geometry>
+```
+
+---
+
+## 6. Ring Systems
+
+Rings are first-class citizens in CSML to properly handle aromaticity and fused ring systems.
+
+### 6.1 `<ring>` Element
+
+```xml
+<ring id="benzene" size="6" aromatic="true">
+  <member atom="C1" />
+  <member atom="C2" />
+  <member atom="C3" />
+  <member atom="C4" />
+  <member atom="C5" />
+  <member atom="C6" />
+</ring>
+```
+
+| Attribute  | Required | Description                                                    |
+|------------|----------|----------------------------------------------------------------|
+| `id`       | yes      | Unique identifier for the ring                                 |
+| `size`     | yes      | Number of members (must match `<member>` count)                |
+| `aromatic` | no       | `true` / `false` — if true, all internal bonds become aromatic |
+| `name`     | no       | Common name for display                                        |
+
+When `aromatic="true"`, you **may omit** individual `<bond>` elements between ring members — the parser infers an aromatic bond between each consecutive member and closes the ring from last to first.
+
+If you want to override specific bonds within a ring (e.g. Kekulé structure), declare them explicitly and they take precedence.
+
+### 6.2 `<fused-ring>` — Fused / Polycyclic Systems
+
+Fused rings share atoms between two or more rings.
+
+```xml
+<!-- Naphthalene -->
+<ring id="ring_a" size="6" aromatic="true">
+  <member atom="C1" /><member atom="C2" /><member atom="C3" />
+  <member atom="C4" /><member atom="C5" /><member atom="C6" />
+</ring>
+<ring id="ring_b" size="6" aromatic="true">
+  <member atom="C5" /><member atom="C6" /><member atom="C7" />
+  <member atom="C8" /><member atom="C9" /><member atom="C10" />
+</ring>
+
+<!-- Declare the relationship -->
+<fused-ring rings="ring_a ring_b" shared-atoms="C5 C6" />
+```
+
+### 6.3 Heterocyclic Rings
+
+Rings with non-carbon members work identically:
+
+```xml
+<!-- Pyridine -->
+<ring id="pyridine" size="6" aromatic="true">
+  <member atom="N1" />
+  <member atom="C2" />
+  <member atom="C3" />
+  <member atom="C4" />
+  <member atom="C5" />
+  <member atom="C6" />
+</ring>
+```
+
+---
+
+## 7. Groups and Fragments
+
+### 7.1 `<group>` — Named Atom Groups
+
+A group packages atoms and their internal bonds into a reusable unit. Think of it as a named substructure or functional group.
+
+```xml
+<group id="hydroxyl" name="Hydroxyl (-OH)">
+  <atom id="O" element="O" />
+  <atom id="H" element="H" />
+  <bond from="O" to="H" order="single" />
+  <anchor atom="O" />
+</group>
+```
+
+The `<anchor>` element marks the atom(s) that serve as connection points to the rest of the molecule.
+
+### 7.2 `<group-ref>` — Using a Group
+
+```xml
+<!-- Attach a hydroxyl group: the anchor (O) bonds to C6 -->
+<group-ref ref="hydroxyl" id="oh1">
+  <attach anchor="O" to="C6" bond-order="single" />
+</group-ref>
+```
+
+| Attribute | Description                              |
+|-----------|------------------------------------------|
+| `ref`     | The `id` of the `<group>` to instantiate |
+| `id`      | Unique id for this particular instance   |
+
+Each `<group-ref>` creates an independent copy — atoms inside are scoped as `{ref-id}.{atom-id}` (e.g. `oh1.O`).
+
+### 7.3 `<fragment-library>` — Predefined Groups
+
+CSML defines a standard library of common functional groups that parsers should recognise without explicit definition:
+
+```xml
+<fragment-library>
+  <group id="std:hydroxyl"  formula="-OH" />
+  <group id="std:amino"     formula="-NH₂" />
+  <group id="std:carboxyl"  formula="-COOH" />
+  <group id="std:carbonyl"  formula=">C=O" />
+  <group id="std:methyl"    formula="-CH₃" />
+  <group id="std:methylene" formula="-CH₂-" />
+  <group id="std:amide"     formula="-CONH-" />
+  <group id="std:phenyl"    formula="-C₆H₅" />
+  <group id="std:ester"     formula="-COO-" />
+</fragment-library>
+```
+
+Using a standard group:
+
+```xml
+<group-ref ref="std:carboxyl">
+  <attach anchor="C" to="C6" bond-order="single" />
+</group-ref>
+```
+
+---
+
+## 8. Repeat Units (Brackets)
+
+This is the core feature for describing polymers, oligomers, and any structure with repeating patterns.
+
+### 8.1 `<repeat>` Element
+
+```xml
+<repeat id="ru1" n="n" end-groups="open">
+  <!-- everything inside is repeated -->
+  <atom id="C1" element="C" />
+  <atom id="C2" element="C" />
+  <bond from="C1" to="C2" order="single" />
+
+  <!-- how the repeat unit connects to its neighbours -->
+  <connector head="C1" tail="C2" bond-order="single" />
+</repeat>
+```
+
+| Attribute    | Required | Description                                                           |
+|--------------|----------|-----------------------------------------------------------------------|
+| `id`         | yes      | Unique identifier                                                     |
+| `n`          | yes      | Repetition count: a positive integer, or a variable like `"n"`, `"m"` |
+| `end-groups` | no       | `open` (dangling bonds), `capped` (see §8.3), `cyclic` (ring closure) |
+| `label`      | no       | Display label (e.g. `"repeat unit A"`)                                |
+
+### 8.2 `<connector>` — How Units Link
+
+The `<connector>` defines which atoms in the repeat unit form bonds to the next copy and the previous copy.
+
+```xml
+<connector head="C1" tail="C2" bond-order="single" />
+```
+
+- **head**: The atom that bonds to the **tail** of the *previous* unit (or the head end-group).
+- **tail**: The atom that bonds to the **head** of the *next* unit (or the tail end-group).
+
+When expanded, the parser creates a bond from `unit[i].tail` → `unit[i+1].head`.
+
+### 8.3 End Groups — `<cap>`
+
+```xml
+<repeat id="ru1" n="n" end-groups="capped">
+  <!-- ... repeat unit content ... -->
+  <connector head="C1" tail="C2" bond-order="single" />
+
+  <cap position="head">
+    <atom id="H_cap" element="H" />
+    <bond from="H_cap" to="C1" order="single" />
+  </cap>
+  <cap position="tail">
+    <atom id="OH_cap" element="O" />
+    <atom id="H_cap2" element="H" />
+    <bond from="C2" to="OH_cap" order="single" />
+    <bond from="OH_cap" to="H_cap2" order="single" />
+  </cap>
+</repeat>
+```
+
+### 8.4 Nested Repeats
+
+Repeat units can nest, enabling block copolymers and branched repetition.
+
+```xml
+<!-- ABA block copolymer -->
+<repeat id="block_a" n="n">
+  <!-- ... monomer A ... -->
+  <connector head="A1" tail="A2" bond-order="single" />
+</repeat>
+
+<repeat id="block_b" n="m">
+  <!-- ... monomer B ... -->
+  <connector head="B1" tail="B2" bond-order="single" />
+</repeat>
+
+<sequence>
+  <segment ref="block_a" />
+  <segment ref="block_b" />
+  <segment ref="block_a" />
+</sequence>
+```
+
+### 8.5 `<copolymer>` — Statistical / Alternating Patterns
+
+```xml
+<copolymer pattern="alternating">
+  <unit ref="ru_a" />
+  <unit ref="ru_b" />
+</copolymer>
+
+<copolymer pattern="random" ratio="0.6:0.4">
+  <unit ref="ru_a" />
+  <unit ref="ru_b" />
+</copolymer>
+
+<copolymer pattern="block">
+  <unit ref="ru_a" n="n" />
+  <unit ref="ru_b" n="m" />
+</copolymer>
+```
+
+| `pattern` Value | Meaning                                          |
+|-----------------|--------------------------------------------------|
+| `alternating`   | Strict A-B-A-B-…                                 |
+| `random`        | Statistical distribution at the given `ratio`    |
+| `block`         | Contiguous blocks of each monomer                |
+| `graft`         | Side-chain polymer (use `<branch>` inside units) |
+
+---
+
+## 9. Branching
+
+### 9.1 `<branch>` Element
+
+A branch declares a side chain originating from an atom in the main structure.
+
+```xml
+<atom id="C3" element="C" />
+
+<branch from="C3">
+  <atom id="B1" element="C" />
+  <atom id="B2" element="C" />
+  <bond from="C3" to="B1" order="single" />
+  <bond from="B1" to="B2" order="single" />
+</branch>
+```
+
+Branches can themselves contain `<ring>`, `<group-ref>`, `<repeat>`, or further `<branch>` elements.
+
+### 9.2 Crosslinks
+
+For crosslinked polymers (thermosets, vulcanised rubber):
+
+```xml
+<crosslink from="polymer_a.C5" to="polymer_b.C8" order="single" />
+```
+
+---
+
+## 10. Full Examples
+
+### 10.1 1-Hexanol (linear)
+
+```
+CH₃–CH₂–CH₂–CH₂–CH₂–CH₂–OH
+```
+
+```xml
+<csml version="0.1">
+  <molecule id="1-hexanol" name="1-Hexanol">
+
+    <atom-list element="C" prefix="C" from="1" to="6" />
+    <atom id="O1" element="O" />
+
+    <bond-chain atoms="C1 C2 C3 C4 C5 C6" order="single" />
+    <bond from="C6" to="O1" order="single" />
+
+    <!-- Implicit hydrogens fill the rest automatically -->
+
+    <geometry>
+      <angle atoms="C1 C2 C3" value="112.0" />
+      <angle atoms="C2 C3 C4" value="112.0" />
+      <angle atoms="C3 C4 C5" value="112.0" />
+      <angle atoms="C4 C5 C6" value="112.0" />
+      <angle atoms="C5 C6 O1" value="109.5" />
+      <torsion atoms="C1 C2 C3 C4" value="180.0" />
+      <torsion atoms="C2 C3 C4 C5" value="180.0" />
+      <torsion atoms="C3 C4 C5 C6" value="180.0" />
+    </geometry>
+
+  </molecule>
+</csml>
+```
+
+### 10.2 3-Hexanol (branched isomer)
+
+```
+CH₃–CH₂–CH(OH)–CH₂–CH₂–CH₃
+```
+
+```xml
+<csml version="0.1">
+  <molecule id="3-hexanol" name="3-Hexanol">
+
+    <atom-list element="C" prefix="C" from="1" to="6" />
+    <atom id="O1" element="O" />
+
+    <bond-chain atoms="C1 C2 C3 C4 C5 C6" order="single" />
+
+    <!-- Hydroxyl on C3 instead of C6 -->
+    <bond from="C3" to="O1" order="single" />
+
+    <atom id="C3" element="C" chirality="R" />
+    <!-- ↑ Override to add stereochemistry to C3 -->
+
+  </molecule>
+</csml>
+```
+
+*Note: Redeclaring an atom with the same `id` acts as a property override / merge, not a duplicate.*
+
+
+### 10.3 Cyclohexanol
+
+```xml
+<csml version="0.1">
+  <molecule id="cyclohexanol" name="Cyclohexanol">
+
+    <atom-list element="C" prefix="C" from="1" to="6" />
+    <atom id="O1" element="O" />
+
+    <ring id="hexane_ring" size="6" aromatic="false">
+      <member atom="C1" />
+      <member atom="C2" />
+      <member atom="C3" />
+      <member atom="C4" />
+      <member atom="C5" />
+      <member atom="C6" />
+    </ring>
+
+    <bond from="C1" to="O1" order="single" />
+
+  </molecule>
+</csml>
+```
+
+
+### 10.4 Benzene (aromatic)
+
+```xml
+<csml version="0.1">
+  <molecule id="benzene" name="Benzene">
+
+    <atom-list element="C" prefix="C" from="1" to="6" />
+
+    <ring id="benz" size="6" aromatic="true">
+      <member atom="C1" />
+      <member atom="C2" />
+      <member atom="C3" />
+      <member atom="C4" />
+      <member atom="C5" />
+      <member atom="C6" />
+    </ring>
+
+    <!-- All hydrogens implicit. All bonds inferred as aromatic by the ring. -->
+
+  </molecule>
+</csml>
+```
+
+
+### 10.5 Phenol
+
+```xml
+<csml version="0.1">
+  <molecule id="phenol" name="Phenol">
+
+    <atom-list element="C" prefix="C" from="1" to="6" />
+    <atom id="O1" element="O" />
+
+    <ring id="benz" size="6" aromatic="true">
+      <member atom="C1" /><member atom="C2" /><member atom="C3" />
+      <member atom="C4" /><member atom="C5" /><member atom="C6" />
+    </ring>
+
+    <bond from="C1" to="O1" order="single" />
+
+  </molecule>
+</csml>
+```
+
+
+### 10.6 Naphthalene (fused aromatic)
+
+```xml
+<csml version="0.1">
+  <molecule id="naphthalene" name="Naphthalene">
+
+    <atom-list element="C" prefix="C" from="1" to="10" />
+
+    <ring id="ring_a" size="6" aromatic="true">
+      <member atom="C1" /><member atom="C2" /><member atom="C3" />
+      <member atom="C4" /><member atom="C5" /><member atom="C6" />
+    </ring>
+
+    <ring id="ring_b" size="6" aromatic="true">
+      <member atom="C5" /><member atom="C6" /><member atom="C7" />
+      <member atom="C8" /><member atom="C9" /><member atom="C10" />
+    </ring>
+
+    <fused-ring rings="ring_a ring_b" shared-atoms="C5 C6" />
+
+  </molecule>
+</csml>
+```
+
+
+### 10.7 Nylon-6 (Polycaprolactam)
+
+```
+–[NH–(CH₂)₅–CO]ₙ–
+```
+
+```xml
+<csml version="0.1">
+  <molecule id="nylon6" name="Nylon-6 (Polycaprolactam)">
+
+    <repeat id="caprolactam" n="n" end-groups="capped">
+
+      <!-- The amide nitrogen -->
+      <atom id="N1" element="N" />
+
+      <!-- Five methylene groups -->
+      <atom-list element="C" prefix="C" from="1" to="5" />
+
+      <!-- The carbonyl carbon -->
+      <atom id="C6" element="C" />
+      <atom id="O1" element="O" />
+
+      <!-- Backbone bonds -->
+      <bond from="N1" to="C1" order="single" />
+      <bond-chain atoms="C1 C2 C3 C4 C5 C6" order="single" />
+      <bond from="C6" to="O1" order="double" />
+
+      <!-- Connection logic:
+           tail (C6) bonds to head (N1) of the next unit via amide bond -->
+      <connector head="N1" tail="C6" bond-order="single" />
+
+      <!-- Chain ends -->
+      <cap position="head">
+        <atom id="H_end" element="H" />
+        <bond from="H_end" to="N1" order="single" />
+      </cap>
+      <cap position="tail">
+        <group-ref ref="std:hydroxyl">
+          <attach anchor="O" to="C6" bond-order="single" />
+        </group-ref>
+      </cap>
+
+    </repeat>
+
+  </molecule>
+</csml>
+```
+
+
+### 10.8 Nylon-6,6 (Polyhexamethylene Adipamide)
+
+```
+–[NH–(CH₂)₆–NH–CO–(CH₂)₄–CO]ₙ–
+```
+
+This is a **condensation copolymer** with two distinct monomers: hexamethylenediamine and adipic acid.
+
+```xml
+<csml version="0.1">
+  <molecule id="nylon66" name="Nylon-6,6">
+
+    <!-- ═══════════════════════════════════════════════
+         MONOMER A: Hexamethylenediamine residue
+         ═══════════════════════════════════════════════ -->
+    <group id="diamine_unit">
+      <atom id="N1" element="N" />
+      <atom-list element="C" prefix="C" from="1" to="6" />
+      <atom id="N2" element="N" />
+
+      <bond from="N1" to="C1" order="single" />
+      <bond-chain atoms="C1 C2 C3 C4 C5 C6" order="single" />
+      <bond from="C6" to="N2" order="single" />
+
+      <anchor atom="N1" role="head" />
+      <anchor atom="N2" role="tail" />
+    </group>
+
+    <!-- ═══════════════════════════════════════════════
+         MONOMER B: Adipic acid residue
+         ═══════════════════════════════════════════════ -->
+    <group id="diacid_unit">
+      <atom id="C1" element="C" />
+      <atom id="O1" element="O" />
+      <atom-list element="C" prefix="M" from="1" to="4" />
+      <atom id="C2" element="C" />
+      <atom id="O2" element="O" />
+
+      <bond from="C1" to="O1" order="double" />
+      <bond from="C1" to="M1" order="single" />
+      <bond-chain atoms="M1 M2 M3 M4" order="single" />
+      <bond from="M4" to="C2" order="single" />
+      <bond from="C2" to="O2" order="double" />
+
+      <anchor atom="C1" role="head" />
+      <anchor atom="C2" role="tail" />
+    </group>
+
+    <!-- ═══════════════════════════════════════════════
+         POLYMER: Alternating copolymer
+         ═══════════════════════════════════════════════ -->
+    <repeat id="nylon66_ru" n="n" end-groups="capped">
+      <copolymer pattern="alternating">
+        <unit ref="diamine_unit" />
+        <unit ref="diacid_unit" />
+      </copolymer>
+
+      <!-- Amide bond forms between each unit -->
+      <connector head="diamine_unit.N1" tail="diacid_unit.C2" bond-order="single" />
+
+      <cap position="head">
+        <atom id="H_cap" element="H" />
+        <bond from="H_cap" to="diamine_unit.N1" order="single" />
+      </cap>
+      <cap position="tail">
+        <group-ref ref="std:hydroxyl">
+          <attach anchor="O" to="diacid_unit.C2" bond-order="single" />
+        </group-ref>
+      </cap>
+    </repeat>
+
+  </molecule>
+</csml>
+```
+
+
+### 10.9 Kevlar (Poly-paraphenylene Terephthalamide)
+
+An aromatic polyamide combining aromatic rings with amide linkages.
+
+```xml
+<csml version="0.1">
+  <molecule id="kevlar" name="Kevlar (PPTA)">
+
+    <!-- ═══════════════════════════════════════════
+         MONOMER A: p-Phenylenediamine residue
+         ═══════════════════════════════════════════ -->
+    <group id="ppd_unit">
+      <atom id="N1" element="N" />
+      <atom-list element="C" prefix="R" from="1" to="6" />
+      <atom id="N2" element="N" />
+
+      <ring id="ppd_ring" size="6" aromatic="true">
+        <member atom="R1" /><member atom="R2" /><member atom="R3" />
+        <member atom="R4" /><member atom="R5" /><member atom="R6" />
+      </ring>
+
+      <!-- para substitution: N on R1 and R4 -->
+      <bond from="N1" to="R1" order="single" />
+      <bond from="R4" to="N2" order="single" />
+
+      <anchor atom="N1" role="head" />
+      <anchor atom="N2" role="tail" />
+    </group>
+
+    <!-- ═══════════════════════════════════════════
+         MONOMER B: Terephthaloyl residue
+         ═══════════════════════════════════════════ -->
+    <group id="tpc_unit">
+      <atom id="C1" element="C" />
+      <atom id="O1" element="O" />
+      <atom-list element="C" prefix="R" from="1" to="6" />
+      <atom id="C2" element="C" />
+      <atom id="O2" element="O" />
+
+      <ring id="tpc_ring" size="6" aromatic="true">
+        <member atom="R1" /><member atom="R2" /><member atom="R3" />
+        <member atom="R4" /><member atom="R5" /><member atom="R6" />
+      </ring>
+
+      <!-- para substitution: carbonyl on R1 and R4 -->
+      <bond from="C1" to="R1" order="single" />
+      <bond from="C1" to="O1" order="double" />
+      <bond from="R4" to="C2" order="single" />
+      <bond from="C2" to="O2" order="double" />
+
+      <anchor atom="C1" role="head" />
+      <anchor atom="C2" role="tail" />
+    </group>
+
+    <!-- ═══════════════════════════════════════════
+         POLYMER
+         ═══════════════════════════════════════════ -->
+    <repeat id="kevlar_ru" n="n" end-groups="open">
+      <copolymer pattern="alternating">
+        <unit ref="ppd_unit" />
+        <unit ref="tpc_unit" />
+      </copolymer>
+      <connector head="ppd_unit.N1" tail="tpc_unit.C2" bond-order="single" />
+    </repeat>
+
+  </molecule>
+</csml>
+```
+
+
+### 10.10 Polyethylene Terephthalate (PET)
+
+A polyester — demonstrating the `<repeat>` system with ester linkages instead of amide.
+
+```xml
+<csml version="0.1">
+  <molecule id="pet" name="PET (Polyethylene Terephthalate)">
+
+    <repeat id="pet_ru" n="n" end-groups="open">
+
+      <!-- Ethylene glycol residue -->
+      <atom id="O1" element="O" />
+      <atom id="C1" element="C" />
+      <atom id="C2" element="C" />
+      <atom id="O2" element="O" />
+
+      <bond from="O1" to="C1" order="single" />
+      <bond from="C1" to="C2" order="single" />
+      <bond from="C2" to="O2" order="single" />
+
+      <!-- Terephthalic acid residue -->
+      <atom id="C3" element="C" />
+      <atom id="O3" element="O" />
+      <atom-list element="C" prefix="R" from="1" to="6" />
+      <atom id="C4" element="C" />
+      <atom id="O4" element="O" />
+      <atom id="O5" element="O" />
+
+      <bond from="O2" to="C3" order="single" />
+      <bond from="C3" to="O3" order="double" />
+
+      <ring id="pet_ring" size="6" aromatic="true">
+        <member atom="R1" /><member atom="R2" /><member atom="R3" />
+        <member atom="R4" /><member atom="R5" /><member atom="R6" />
+      </ring>
+
+      <bond from="C3" to="R1" order="single" />
+      <bond from="R4" to="C4" order="single" />
+      <bond from="C4" to="O4" order="double" />
+      <bond from="C4" to="O5" order="single" />
+
+      <connector head="O1" tail="O5" bond-order="single" />
+
+    </repeat>
+
+  </molecule>
+</csml>
+```
+
+---
+
+## 11. Advanced Features
+
+### 11.1 Variables and Parametric Structures
+
+CSML supports symbolic variables for chain lengths and repeat counts, enabling parametric descriptions.
+
+```xml
+<variables>
+  <var name="n" type="integer" min="1" description="Degree of polymerisation" />
+  <var name="m" type="integer" min="0" description="Branch length" />
+  <var name="x" type="float" min="0" max="1" description="Copolymer mole fraction" />
+</variables>
+```
+
+These can be referenced wherever an integer or float is expected:
+
+```xml
+<repeat n="n"> ... </repeat>
+<copolymer ratio="x:1-x"> ... </copolymer>
+```
+
+
+### 11.2 `<substituent>` — Positional Substitution Patterns
+
+For defining families of related compounds (e.g. all hexanol isomers at once):
+
+```xml
+<molecule id="hexanol_family" name="Hexanol (generic)">
+  <atom-list element="C" prefix="C" from="1" to="6" />
+  <bond-chain atoms="C1 C2 C3 C4 C5 C6" order="single" />
+
+  <substituent group-ref="std:hydroxyl" position="any-of:C1 C2 C3">
+    <attach anchor="O" bond-order="single" />
+  </substituent>
+</molecule>
+```
+
+The `position` attribute supports:
+- A single atom: `position="C1"`
+- A choice: `position="any-of:C1 C2 C3"`
+- All positions: `position="all:C1 C2 C3"` (polysubstitution)
+
+
+### 11.3 `<hydrogen-bond>` — Intermolecular Interactions
+
+Critical for understanding polyamide sheet structures:
+
+```xml
+<hydrogen-bond>
+  <donor molecule="chain_a" atom="N1" hydrogen="H_N1" />
+  <acceptor molecule="chain_b" atom="O1" />
+  <length value="2.8" unit="angstrom" />
+</hydrogen-bond>
+```
+
+
+### 11.4 `<configuration>` — Tacticity
+
+For vinyl polymers (polypropylene, polystyrene):
+
+```xml
+<repeat id="pp_ru" n="n">
+  <!-- ... propylene unit ... -->
+  <configuration type="isotactic" />
+  <!-- alternatives: "syndiotactic", "atactic" -->
+</repeat>
+```
+
+
+### 11.5 `<reaction>` — Describing Transformations (Preview)
+
+While primarily a structure language, CSML can sketch reactions:
+
+```xml
+<reaction id="condensation" type="condensation">
+  <reactant ref="hexamethylenediamine" />
+  <reactant ref="adipic_acid" />
+  <product ref="nylon66" />
+  <byproduct>
+    <molecule id="water" name="Water">
+      <atom id="O" element="O" />
+      <atom id="H1" element="H" />
+      <atom id="H2" element="H" />
+      <bond from="O" to="H1" order="single" />
+      <bond from="O" to="H2" order="single" />
+    </molecule>
+  </byproduct>
+  <conditions temperature="280" temperature-unit="C" pressure="1" pressure-unit="atm" />
+</reaction>
+```
+
+---
+
+## 12. Element Reference Table
+
+The complete `<atom>` element attribute reference:
+
+| Attribute       | Type    | Default | Values / Range                      |
+|-----------------|---------|---------|-------------------------------------|
+| `id`            | string  | —       | Unique within scope                 |
+| `element`       | string  | —       | Any valid element symbol            |
+| `isotope`       | integer | natural | Mass number                         |
+| `charge`        | integer | 0       | Signed integer                      |
+| `radical`       | enum    | none    | `singlet`, `doublet`, `triplet`     |
+| `chirality`     | enum    | none    | `R`, `S`, `none`                    |
+| `implicit-h`    | integer | auto    | 0–n, or `auto`                      |
+| `label`         | string  | —       | Free text                           |
+| `hybridisation` | enum    | —       | `sp`, `sp2`, `sp3`, `sp3d`, `sp3d2` |
+
+---
+
+## 13. Namespacing and Extensibility
+
+CSML supports XML namespaces for domain-specific extensions:
+
+```xml
+<csml version="0.1"
+      xmlns:bio="urn:csml:ext:biochem"
+      xmlns:cryst="urn:csml:ext:crystal">
+
+  <molecule id="insulin_fragment">
+    <bio:residue type="Ala" seq="1" />
+    <bio:residue type="Gly" seq="2" />
+  </molecule>
+
+  <cryst:unit-cell a="5.4" b="5.4" c="7.6" alpha="90" beta="90" gamma="120" />
+</csml>
+```
+
+This allows communities (biochemistry, crystallography, materials science) to extend CSML without polluting the core namespace.
+
+---
+
+## 14. Design Decisions Summary
+
+| Decision                            | Rationale                                                     |
+|-------------------------------------|---------------------------------------------------------------|
+| XML-based                           | Hierarchical, self-documenting, wide tooling support          |
+| Explicit atoms, not line notation   | Avoids ambiguity of SMILES; supports 3D and geometry natively |
+| `aromatic` as a bond order          | Better than alternating single/double for delocalised systems |
+| Rings as first-class elements       | Required for aromaticity, fused systems, and heterocycles     |
+| `<repeat>` with `<connector>`       | Clean polymer representation without infinite atom lists      |
+| `<group>` with `<anchor>`           | Composable, reusable fragments with explicit attachment logic |
+| Geometry as optional overlay        | Same CSML file works for topological OR spatial descriptions  |
+| `implicit-h="auto"` default         | Reduces verbosity by 60–80% for organic molecules             |
+| Variables for repeat counts         | Polymers rarely have exact n; symbolic values are essential   |
+| Separation of topology and geometry | Parsers can work at whichever level of detail they need       |
+
+---
+
+## Appendix A: CSML vs Existing Formats
+
+| Feature                   | CSML | SMILES | MOL/SDF | CML | InChI |
+|---------------------------|------|--------|---------|-----|-------|
+| Human-readable            | ✓    | ✓      | ✗       | ✓   | ✗     |
+| Polymer repeat units      | ✓    | ✗      | ~       | ✗   | ✗     |
+| Copolymer patterns        | ✓    | ✗      | ✗       | ✗   | ✗     |
+| Aromatic ring systems     | ✓    | ✓      | ✓       | ✓   | ✓     |
+| 3D geometry               | ✓    | ✗      | ✓       | ✓   | ✗     |
+| Reusable fragments/groups | ✓    | ✗      | ✗       | ~   | ✗     |
+| Reaction support          | ✓    | ✓      | ✓       | ✓   | ✗     |
+| Extensible (namespaces)   | ✓    | ✗      | ✗       | ✓   | ✗     |
+| End-group specification   | ✓    | ✗      | ✗       | ✗   | ✗     |
+| Bond-angle / torsion      | ✓    | ✗      | ~       | ✓   | ✗     |
+
+---
+
+*CSML Specification v0.1 — Draft*
+*Designed for structural chemistry, polymer science, and materials engineering.*

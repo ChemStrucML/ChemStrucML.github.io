@@ -1,0 +1,148 @@
+---
+sidebar_position: 5
+---
+
+# Ring Systems
+
+Rings are first-class citizens in CSML. Rather than relying on bond-closure notation (as in SMILES) or post-processing, CSML lets you declare rings explicitly. This makes aromaticity, fused systems, and heterocycles unambiguous.
+
+## `<ring>` — declaring a ring
+
+A ring is a collection of atoms listed as `<member>` elements, plus metadata about aromaticity.
+
+```xml
+<ring id="benzene" size="6" aromatic="true">
+  <member atom="C1" />
+  <member atom="C2" />
+  <member atom="C3" />
+  <member atom="C4" />
+  <member atom="C5" />
+  <member atom="C6" />
+</ring>
+```
+
+### `<ring>` attributes
+
+| Attribute  | Required | Description |
+|------------|----------|-------------|
+| `id`       | yes      | Unique identifier for this ring |
+| `size`     | yes      | Number of members (must equal the number of `<member>` children) |
+| `aromatic` | no       | `true` or `false`. When `true`, all ring bonds are treated as aromatic |
+| `name`     | no       | Display name (e.g. `"benzene"`, `"pyridine"`) |
+
+### Aromatic rings
+
+When `aromatic="true"`, you **may omit** the `<bond>` elements between ring members. The parser infers an aromatic bond between each consecutive member and closes the ring from the last member back to the first.
+
+```xml
+<!-- Benzene — no explicit bonds needed -->
+<atom-list element="C" prefix="C" from="1" to="6" />
+
+<ring id="benzene" size="6" aromatic="true">
+  <member atom="C1" />
+  <member atom="C2" />
+  <member atom="C3" />
+  <member atom="C4" />
+  <member atom="C5" />
+  <member atom="C6" />
+</ring>
+```
+
+If you prefer a Kekulé representation, declare the bonds explicitly and they take precedence over the inferred aromatic bonds:
+
+```xml
+<!-- Kekulé benzene -->
+<bond from="C1" to="C2" order="single" />
+<bond from="C2" to="C3" order="double" />
+<bond from="C3" to="C4" order="single" />
+<bond from="C4" to="C5" order="double" />
+<bond from="C5" to="C6" order="single" />
+<bond from="C6" to="C1" order="double" />
+```
+
+## `<fused-ring>` — polycyclic systems
+
+Fused rings share atoms. Declare each ring individually, then use `<fused-ring>` to express the relationship.
+
+```xml
+<!-- Naphthalene: two fused six-membered aromatic rings sharing C5 and C6 -->
+<atom-list element="C" prefix="C" from="1" to="10" />
+
+<ring id="ring_a" size="6" aromatic="true">
+  <member atom="C1" /><member atom="C2" /><member atom="C3" />
+  <member atom="C4" /><member atom="C5" /><member atom="C6" />
+</ring>
+
+<ring id="ring_b" size="6" aromatic="true">
+  <member atom="C5" /><member atom="C6" /><member atom="C7" />
+  <member atom="C8" /><member atom="C9" /><member atom="C10" />
+</ring>
+
+<fused-ring rings="ring_a ring_b" shared-atoms="C5 C6" />
+```
+
+The `shared-atoms` attribute lists the atoms that belong to both rings. This unambiguously defines the fusion bond.
+
+### Larger fused systems
+
+For anthracene (three linearly fused rings) or pyrene (four rings), simply declare more `<ring>` and `<fused-ring>` elements:
+
+```xml
+<!-- Anthracene -->
+<fused-ring rings="ring_a ring_b" shared-atoms="C5 C6" />
+<fused-ring rings="ring_b ring_c" shared-atoms="C11 C12" />
+```
+
+## Heterocyclic rings
+
+Rings with non-carbon members work exactly the same way. Just declare the heteroatoms as atoms first.
+
+```xml
+<!-- Pyridine -->
+<atom id="N1" element="N" />
+<atom-list element="C" prefix="C" from="2" to="6" />
+
+<ring id="pyridine" size="6" aromatic="true" name="pyridine">
+  <member atom="N1" />
+  <member atom="C2" />
+  <member atom="C3" />
+  <member atom="C4" />
+  <member atom="C5" />
+  <member atom="C6" />
+</ring>
+```
+
+```xml
+<!-- Furan (five-membered oxygen heterocycle) -->
+<atom id="O1" element="O" />
+<atom-list element="C" prefix="C" from="2" to="5" />
+
+<ring id="furan" size="5" aromatic="true" name="furan">
+  <member atom="O1" />
+  <member atom="C2" />
+  <member atom="C3" />
+  <member atom="C4" />
+  <member atom="C5" />
+</ring>
+```
+
+## Non-aromatic rings
+
+Leave out `aromatic` (or set it to `false`) for saturated rings. You must declare the bonds explicitly.
+
+```xml
+<!-- Cyclohexane -->
+<atom-list element="C" prefix="C" from="1" to="6" />
+
+<bond from="C1" to="C2" order="single" />
+<bond from="C2" to="C3" order="single" />
+<bond from="C3" to="C4" order="single" />
+<bond from="C4" to="C5" order="single" />
+<bond from="C5" to="C6" order="single" />
+<bond from="C6" to="C1" order="single" />
+
+<ring id="cyclohexane" size="6" aromatic="false">
+  <member atom="C1" /><member atom="C2" /><member atom="C3" />
+  <member atom="C4" /><member atom="C5" /><member atom="C6" />
+</ring>
+```

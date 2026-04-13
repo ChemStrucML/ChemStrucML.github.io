@@ -1,0 +1,127 @@
+---
+sidebar_position: 4
+---
+
+# Geometry
+
+Geometry is **optional** in CSML. A file that contains only atoms and bonds is a valid molecular graph (topology). Geometry adds spatial information on top — coordinates, bond angles, and torsion angles — without changing the connectivity.
+
+This separation means the same CSML document can be used by a 2D renderer, a 3D viewer, and a graph-processing tool simultaneously.
+
+## `<coordinates>` — atom positions
+
+Absolute 2D or 3D positions are declared with a `<coordinates>` block containing `<point>` elements.
+
+### 2D coordinates
+
+```xml
+<coordinates dimension="2d">
+  <point atom="C1" x="0.0"  y="0.0" />
+  <point atom="C2" x="1.54" y="0.0" />
+  <point atom="C3" x="2.31" y="1.33" />
+</coordinates>
+```
+
+### 3D coordinates
+
+```xml
+<coordinates dimension="3d">
+  <point atom="C1" x="0.0"  y="0.0"  z="0.0" />
+  <point atom="C2" x="1.54" y="0.0"  z="0.0" />
+  <point atom="C3" x="0.77" y="1.25" z="0.63" />
+</coordinates>
+```
+
+### Units
+
+The default unit is **Ångströms** (Å). Override with the `units` attribute:
+
+```xml
+<coordinates dimension="3d" units="pm">   <!-- picometres -->
+  <point atom="C1" x="0" y="0" z="0" />
+</coordinates>
+
+<coordinates dimension="2d" units="nm">   <!-- nanometres -->
+  <point atom="C1" x="0.0" y="0.0" />
+</coordinates>
+```
+
+## `<angle>` — bond angles
+
+Declares the angle at the middle atom in a three-atom sequence.
+
+```xml
+<!-- The C1–C2–C3 angle is 112° -->
+<angle atoms="C1 C2 C3" value="112.0" unit="deg" />
+```
+
+The `atoms` attribute lists three atom ids separated by spaces. The **middle atom is the vertex** of the angle.
+
+`unit` defaults to `deg` (degrees). Use `rad` for radians.
+
+## `<torsion>` — dihedral angles
+
+Declares the dihedral (torsion) angle across a four-atom sequence.
+
+```xml
+<!-- C1–C2–C3–C4 dihedral is 180° (anti/extended conformation) -->
+<torsion atoms="C1 C2 C3 C4" value="180.0" unit="deg" />
+
+<!-- Gauche conformation -->
+<torsion atoms="C1 C2 C3 C4" value="60.0" unit="deg" />
+```
+
+## `<length>` — bond lengths
+
+Explicitly sets the distance between two bonded atoms.
+
+```xml
+<length atoms="C1 C2" value="1.54" unit="angstrom" />
+<length atoms="C1 O1" value="1.43" unit="angstrom" />
+```
+
+## `<geometry>` grouping block
+
+Multiple geometry statements can be wrapped in a `<geometry>` element for readability. This has no semantic effect — it is purely organisational.
+
+```xml
+<geometry>
+  <angle   atoms="C1 C2 C3" value="109.5" unit="deg" />
+  <angle   atoms="C2 C3 C4" value="109.5" unit="deg" />
+  <torsion atoms="C1 C2 C3 C4" value="180.0" unit="deg" />
+  <length  atoms="C1 C2" value="1.54" unit="angstrom" />
+</geometry>
+```
+
+## Complete example — propane with full geometry
+
+```xml
+<molecule id="propane" name="Propane">
+
+  <atom id="C1" element="C" />
+  <atom id="C2" element="C" />
+  <atom id="C3" element="C" />
+
+  <bond from="C1" to="C2" order="single" />
+  <bond from="C2" to="C3" order="single" />
+
+  <coordinates dimension="2d">
+    <point atom="C1" x="0.0"  y="0.0" />
+    <point atom="C2" x="1.54" y="0.0" />
+    <point atom="C3" x="2.31" y="1.33" />
+  </coordinates>
+
+  <geometry>
+    <angle  atoms="C1 C2 C3" value="112.0" unit="deg" />
+    <length atoms="C1 C2"     value="1.54"  unit="angstrom" />
+    <length atoms="C2 C3"     value="1.54"  unit="angstrom" />
+  </geometry>
+
+</molecule>
+```
+
+## Notes
+
+- You do not need to provide coordinates for every atom. Atoms without a `<point>` entry have undefined positions — renderers will place them automatically.
+- `<angle>`, `<torsion>`, and `<length>` are constraints that a renderer or geometry engine may use. They do not conflict with `<coordinates>` but redundant information should be consistent.
+- Geometry is always additive and never changes connectivity. Adding or removing geometry elements never makes a molecule topologically different.

@@ -1,0 +1,106 @@
+---
+sidebar_position: 2
+---
+
+# Atoms
+
+Every atom in a CSML molecule is declared explicitly using an `<atom>` element. Nothing is inferred from context — if an atom exists in the structure, it must appear in the file.
+
+## Basic declaration
+
+```xml
+<atom id="C1" element="C" />
+<atom id="O1" element="O" />
+<atom id="N1" element="N" />
+<atom id="Fe1" element="Fe" />
+```
+
+The two required attributes are `id` (unique within the molecule) and `element` (the standard chemical symbol).
+
+## All `<atom>` attributes
+
+| Attribute    | Required | Description |
+|--------------|----------|-------------|
+| `id`         | yes      | Unique identifier within this molecule (e.g. `C1`, `O2`) |
+| `element`    | yes      | Chemical symbol (`C`, `N`, `O`, `H`, `Fe`, …) |
+| `isotope`    | no       | Mass number (e.g. `isotope="14"` for ¹⁴C) |
+| `charge`     | no       | Formal charge as a signed integer (`+1`, `-1`, `+2`, …) |
+| `radical`    | no       | Unpaired electrons: `singlet`, `doublet`, or `triplet` |
+| `chirality`  | no       | Stereocentre designation: `R`, `S`, or `none` |
+| `label`      | no       | Human-readable display label (e.g. `"Cα"`) |
+| `implicit-h` | no       | Number of implicit hydrogens (default: `auto`) |
+
+### Charge
+
+```xml
+<atom id="N1" element="N" charge="+1" />
+<atom id="O1" element="O" charge="-1" />
+```
+
+Use signed integer values. Omitting `charge` means a neutral atom.
+
+### Isotopes
+
+```xml
+<atom id="C1" element="C" isotope="14" />   <!-- ¹⁴C (radiocarbon) -->
+<atom id="H1" element="H" isotope="2" />    <!-- ²H (deuterium) -->
+```
+
+### Chirality
+
+```xml
+<atom id="C2" element="C" chirality="S" />
+<atom id="C4" element="C" chirality="R" />
+```
+
+Chirality follows CIP (Cahn–Ingold–Prelog) rules. Use `none` to explicitly state that the centre is not chiral (useful when you want to suppress automatic inference).
+
+### Radicals
+
+```xml
+<atom id="O1" element="O" radical="doublet" />  <!-- oxygen radical (one unpaired electron) -->
+```
+
+## Implicit hydrogens
+
+By default, `implicit-h="auto"` instructs the parser to add hydrogens until the atom's standard valence is satisfied. You can override this:
+
+```xml
+<!-- Methane with all hydrogens declared explicitly -->
+<atom id="C1" element="C" implicit-h="0" />
+<atom id="H1" element="H" />
+<atom id="H2" element="H" />
+<atom id="H3" element="H" />
+<atom id="H4" element="H" />
+
+<!-- Methane with implicit hydrogens (equivalent) -->
+<atom id="C1" element="C" implicit-h="4" />
+```
+
+Setting `implicit-h="0"` tells the parser that no implicit hydrogens should be added — every hydrogen is declared as a separate `<atom>`. This is useful when you need full control over hydrogen positions and stereochemistry.
+
+## `<atom-list>` shorthand
+
+When you need to declare a run of atoms of the same element with sequential numeric ids, the `<atom-list>` shorthand saves repetition.
+
+```xml
+<!-- Declares C1, C2, C3, C4, C5, C6 as carbon atoms -->
+<atom-list element="C" prefix="C" from="1" to="6" />
+```
+
+This is exactly equivalent to writing out six individual `<atom>` elements. Parsers must expand it internally — you can reference `C1` through `C6` in subsequent `<bond>` elements just as if you had written them by hand.
+
+`<atom-list>` only supports a single element type. For heterogeneous lists, write the atoms individually.
+
+## Complete example — ethanol
+
+```xml
+<molecule id="ethanol" name="Ethanol">
+  <atom id="C1" element="C" />
+  <atom id="C2" element="C" />
+  <atom id="O1" element="O" />
+  <!-- Implicit hydrogens fill the remaining valences automatically -->
+</molecule>
+```
+
+Continuing to [Bonds](./bonds) to connect these atoms.
