@@ -23,21 +23,26 @@ The `from` and `to` attributes reference atom `id` values declared elsewhere in 
 | `from`    | yes      | `id` of the first atom |
 | `to`      | yes      | `id` of the second atom |
 | `order`   | yes      | Bond type (see table below) |
-| `stereo`  | no       | Geometric isomerism: `E`, `Z`, `cis`, `trans`, or `none` |
+| `stereo`  | no       | Stereochemistry: `E`, `Z`, `cis`, `trans`, `wedge`, `hatch`, `either`, or `none` |
+| `topology`| no       | `ring`, `chain`, or `any` — constrains whether the bond participates in a ring |
 | `id`      | no       | Optional unique identifier for the bond itself |
-| `display` | no       | Rendering hint: `solid`, `dashed`, `wedge`, `hatch` |
+| `display` | no       | Non-normative rendering hint: `solid`, `dashed`. Parsers may ignore |
 
 ### Bond orders
 
 | Value      | Meaning |
 |------------|---------|
-| `single`   | Standard single bond (σ) |
-| `double`   | Standard double bond (σ + π) |
-| `triple`   | Triple bond (σ + 2π) |
-| `aromatic` | Delocalised bond inside a ring system (see [Ring Systems](./ring-systems)) |
-| `dative`   | Coordinate/dative bond; `from` is the electron donor |
-| `hydrogen` | Explicit hydrogen bond (intra- or intermolecular) |
-| `any`      | Wildcard for query or template structures |
+| `single`    | Standard single bond (σ) |
+| `double`    | Standard double bond (σ + π) |
+| `triple`    | Triple bond (σ + 2π) |
+| `quadruple` | Quadruple bond (e.g. metal–metal multiple bonds) |
+| `quintuple` | Quintuple bond (certain transition-metal complexes) |
+| `aromatic`  | Delocalised bond inside a ring system (see [Ring Systems](./ring-systems)) |
+| `partial`   | Fractional / delocalised non-aromatic bond (resonance, transition states) |
+| `dative`    | Coordinate/dative bond; `from` is the electron donor |
+| `any`       | Wildcard for query or template structures |
+
+Hydrogen bonds are declared with a dedicated `<hydrogen-bond>` element (see the specification), not with `order="hydrogen"` on `<bond>`.
 
 ### Stereo on double bonds
 
@@ -48,14 +53,16 @@ The `from` and `to` attributes reference atom `id` values declared elsewhere in 
 
 Use `stereo` only on `double` bonds where geometric isomerism exists. `E`/`Z` and `cis`/`trans` are both accepted.
 
-### Display hints
+### Wedge and hatch bonds
+
+Single-bond stereochemistry is encoded on the `stereo` attribute — not on `display`. A wedge or hatch describes a real 3D relationship (the bond rises toward or away from the viewer), so it belongs in the stereochemistry layer.
 
 ```xml
-<bond from="C1" to="H1" order="single" display="wedge" />  <!-- coming out of page -->
-<bond from="C1" to="H2" order="single" display="hatch" />  <!-- going into page -->
+<bond from="C1" to="H1" order="single" stereo="wedge" />  <!-- coming out of page -->
+<bond from="C1" to="H2" order="single" stereo="hatch" />  <!-- going into page -->
 ```
 
-`display` is a presentation hint for renderers. It does not affect topology or geometry.
+Use `stereo="either"` when the stereochemistry is defined but unspecified. The `display` attribute is reserved for purely visual hints (e.g. `solid`, `dashed`) that carry no chemical meaning.
 
 ## Dative bonds
 

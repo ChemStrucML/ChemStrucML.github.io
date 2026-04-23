@@ -95,7 +95,7 @@ function CodeExample() {
           </div>
           <div className={clsx('col col--7')}>
             <pre className={styles.codeBlock}>{`<?xml version="1.0" encoding="UTF-8"?>
-<csml version="0.1">
+<csml version="0.2">
   <molecule id="ethanol" name="Ethanol">
     <atom id="C1" element="C" />
     <atom id="C2" element="C" />

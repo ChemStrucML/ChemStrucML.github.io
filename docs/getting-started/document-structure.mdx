@@ -10,21 +10,21 @@ Every CSML file is a well-formed XML document. The root element is `<csml>`, and
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<csml version="0.1">
+<csml version="0.2">
   <molecule id="my-molecule" name="My Molecule">
     <!-- atoms, bonds, geometry, groups, … -->
   </molecule>
 </csml>
 ```
 
-The `version` attribute on `<csml>` declares which version of the specification the file conforms to. For the current release it is always `"0.1"`.
+The `version` attribute on `<csml>` declares which version of the specification the file conforms to. For the current release it is always `"0.2"`.
 
 ## Multiple molecules
 
 A single CSML file may contain more than one `<molecule>` block. This is useful for reactions, mixtures, fragment libraries, or simply grouping related structures together.
 
 ```xml
-<csml version="0.1">
+<csml version="0.2">
   <molecule id="reactant" name="Acetic acid">
     <!-- … -->
   </molecule>
@@ -41,7 +41,7 @@ Each molecule has its own independent atom/bond namespace. An `id` attribute on 
 An optional `<meta>` block can appear before the first `<molecule>` to record authorship and provenance.
 
 ```xml
-<csml version="0.1">
+<csml version="0.2">
   <meta>
     <author>Jane Doe</author>
     <created>2026-03-26</created>
