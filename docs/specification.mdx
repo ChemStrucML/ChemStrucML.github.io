@@ -10,9 +10,9 @@ The latest version of the specification is available in the [GitHub repository](
 
 ---
 
-# Part I: Document Setup & Environment
+## Part I: Document Setup & Environment
 
-## 1. Design Philosophy
+### 1. Design Philosophy
 
 CSML is an XML-based markup language for describing molecular structures with full topological, geometric, and repeating-unit information. It is designed to be:
 
@@ -25,9 +25,9 @@ CSML separates **topology** (what is connected to what) from **geometry** (angle
 
 ---
 
-## 2. Document Structure & Environment
+### 2. Document Structure & Environment
 
-### 2.1 Root Element `<csml>`
+#### 2.1 Root Element `<csml>`
 
 Every CSML file is a well-formed XML document with `<csml>` as its root element and has the file extension `.csml`; `.xml` is acceptable but not preferred. For HTTP transport, servers should use the `application/vnd.csml+xml` content type.
 
@@ -52,7 +52,7 @@ The `<csml>` root element:
 | `version` | yes      | Spec version this document conforms to (e.g. `0.2`)                  |
 | `profile` | no       | Compliance profile (`core`, `polymer`, `reaction`, `full`) — see §13 |
 
-### 2.2 `<meta>` — Document Metadata
+#### 2.2 `<meta>` — Document Metadata
 
 ```xml
 <meta>
@@ -82,7 +82,7 @@ The `<csml>` root element:
 
 Third-party elements are permitted inside `<meta>` provided they live in a non-default XML namespace (see §2.3).
 
-### 2.3 Namespacing and Extensibility
+#### 2.3 Namespacing and Extensibility
 
 CSML supports XML namespaces for domain-specific extensions:
 
@@ -102,7 +102,7 @@ CSML supports XML namespaces for domain-specific extensions:
 
 This allows communities (biochemistry, crystallography, materials science) to extend CSML without polluting the core namespace. Parser behaviour on unknown namespaced content is defined in §13.2.
 
-### 2.4 Identifier Scoping & Dot Notation
+#### 2.4 Identifier Scoping & Dot Notation
 
 Identifiers declared on `<atom>`, `<bond>`, `<ring>`, `<group>`, `<repeat>`, `<branch>`, `<group-ref>`, `<copolymer>`, and similar elements form a **scope tree**:
 
@@ -123,7 +123,7 @@ Identifiers declared on `<atom>`, `<bond>`, `<ring>`, `<group>`, `<repeat>`, `<b
 <!-- Outside, atoms are addressable as oh1.O and oh1.H -->
 ```
 
-#### 2.4.1 ID Expansion Inside `<repeat>`
+##### 2.4.1 ID Expansion Inside `<repeat>`
 
 When a `<repeat>` is expanded to its literal instances (either to a concrete integer `n`, or for analytical purposes to a symbolic chain), atom IDs inside the repeat are disambiguated by suffixing the **instance index** (1-based):
 
@@ -134,7 +134,7 @@ Example:       ru1.C1_1, ru1.C1_2, …, ru1.C1_n
 
 For symbolic `n` (e.g. `n="n"`), the suffix `_n` is reserved for the terminal instance; the suffix `_1` is the initial instance; intermediate references use `_i` (a free index variable ranging over `1..n`) and related forms like `_i+1`, `_i-1`. These are **formal indices**, not conventions: a tool consuming a CSML document with variable-length repeats must treat `ru1.C5_i` as "the C5 atom of an arbitrary unspecified instance" and must accept such references in `<crosslink>` and `<hydrogen-bond>` endpoints (see §9.7).
 
-#### 2.4.2 Cross-Scope References
+##### 2.4.2 Cross-Scope References
 
 `<crosslink>` and `<hydrogen-bond>` operate across scopes and must use fully-qualified dot-notation paths:
 
@@ -142,7 +142,7 @@ For symbolic `n` (e.g. `n="n"`), the suffix `_n` is reserved for the terminal in
 <crosslink from="chainA.ru1.C5_3" to="chainB.ru2.C8_7" order="single" />
 ```
 
-### 2.5 Variables and Parametric Structures
+#### 2.5 Variables and Parametric Structures
 
 CSML supports symbolic variables for chain lengths and repeat counts, enabling parametric descriptions.
 
@@ -163,11 +163,11 @@ A `<var>` declares a symbolic placeholder. It may appear at document level (insi
 | `min` / `max` | no       | Inclusive bounds on the variable's domain                    |
 | `description` | no       | Free-text description                                        |
 
-#### 2.5.1 Where Variables May Appear
+##### 2.5.1 Where Variables May Appear
 
 Variables can be referenced wherever an integer or float is expected, e.g. `<repeat n="n">` or `<copolymer ratio="x:1-x">`.
 
-#### 2.5.2 Restricted Expression Syntax
+##### 2.5.2 Restricted Expression Syntax
 
 Attribute values that reference variables are **not** a general expression language. To keep parsing deterministic, only the following forms are normative in CSML 0.2:
 
@@ -181,15 +181,15 @@ Any other arithmetic (products, divisions, nested expressions, multi-variable co
 
 ---
 
-# Part II: Basic Topology (Nodes & Edges)
+## Part II: Basic Topology (Nodes & Edges)
 
-## 3. Molecule-Level Properties
+### 3. Molecule-Level Properties
 
-### 3.1 The `<molecule>` Container
+#### 3.1 The `<molecule>` Container
 
 `<molecule>` is the top-level container for a single connected molecular graph. It opens the root scope for identifier resolution (§2.4).
 
-### 3.2 Global Properties
+#### 3.2 Global Properties
 
 The `<molecule>` element accepts the following attributes:
 
@@ -215,9 +215,9 @@ If molecule-level `charge` is declared, the sum of atom-level charges must match
 
 ---
 
-## 4. Basic Topology: Atoms
+### 4. Basic Topology: Atoms
 
-### 4.1 The `<atom>` Element
+#### 4.1 The `<atom>` Element
 
 Every atom in the structure is declared explicitly.
 
@@ -244,7 +244,7 @@ Every atom in the structure is declared explicitly.
 | `hybridisation`   | no       | `sp`, `sp2`, `sp3`, `sp3d`, `sp3d2`                                                                           |
 | `map`             | no       | Reaction atom-map index (integer). Same value across reactants/products links corresponding atoms — see §12.5 |
 
-### 4.2 `<atom-list>` Shorthand & Expansion
+#### 4.2 `<atom-list>` Shorthand & Expansion
 
 For repetitive declarations (e.g. a chain of carbons), CSML provides a bulk shorthand.
 
@@ -262,7 +262,7 @@ Any scalar attribute valid on `<atom>` may be applied in bulk to every expanded 
 
 This is syntactic sugar — parsers must expand it into individual `<atom>` elements internally. Per-atom overrides in the same scope (see §4.3) may refine properties for specific members after expansion.
 
-### 4.3 Atom Merge Semantics
+#### 4.3 Atom Merge Semantics
 
 Redeclaring an `id` within the **same scope** is a legal operation that **merges** the new attributes into the existing atom. This is how you add properties to atoms previously emitted by `<atom-list>` or `<group-ref>`:
 
@@ -279,15 +279,17 @@ Merge rules:
 3. Merge applies only within the same scope. Redeclaring `C1` inside a nested `<group>` creates a new atom in the inner scope; it does not merge with the outer `C1`.
 4. `<atom-list>` expansions may be merged into individually, but you cannot partially redeclare the list itself.
 
-### 4.4 Implicit Hydrogens & Valence Rules
+#### 4.4 Implicit Hydrogens & Valence Rules
 
 By default, `implicit-h="auto"` tells the parser to fill hydrogens to satisfy the atom's **standard valence**. Set `implicit-h="0"` to suppress this and declare every hydrogen explicitly, or provide a specific integer.
 
-#### 4.4.1 Implicit-Hydrogen Formula
+##### 4.4.1 Implicit-Hydrogen Formula
 
 When `implicit-h="auto"`, the parser computes:
 
-$$h_{\text{implicit}} = V_{\text{standard}} - \sum (\text{bond orders}) - c_{\text{adj}} - e_{\text{radical}}$$
+$$
+h_{\text{implicit}} = V_{\text{standard}} - \sum (\text{bond orders}) - c_{\text{adj}} - e_{\text{radical}}
+$$
 
 where:
 
@@ -298,7 +300,7 @@ where:
 
 If the computed value is negative, parsers MUST emit an error — the declaration is over-bonded.
 
-#### 4.4.2 Ambiguous Valence
+##### 4.4.2 Ambiguous Valence
 
 If a main-group element has multiple common valences (e.g. P(III)/P(V), S(II)/S(IV)/S(VI)), use the `valence` attribute to disambiguate. Without an explicit `valence` and without enough explicit bonds to determine it, parsers **must** emit a warning and fall back to the lowest valence listed in §4.4.3.
 
@@ -317,7 +319,7 @@ If a main-group element has multiple common valences (e.g. P(III)/P(V), S(II)/S(
 <atom id="P1" element="P" valence="5" />
 ```
 
-#### 4.4.3 Standard Valence Table
+##### 4.4.3 Standard Valence Table
 
 | Element                | Standard valence(s)      |
 |------------------------|--------------------------|
@@ -335,7 +337,7 @@ If a main-group element has multiple common valences (e.g. P(III)/P(V), S(II)/S(
 
 Elements not listed in this table — **including all d-block and f-block metals** — do not receive implicit hydrogens; authors must declare hydrogens explicitly.
 
-#### 4.4.4 Transition and f-Block Metals
+##### 4.4.4 Transition and f-Block Metals
 
 The "lowest valence fallback" rule of §4.4.2 does **not** apply to d-block or f-block elements. Coordination number, spin state, and ligand field vary too widely for a safe default to exist. Therefore:
 
@@ -344,7 +346,7 @@ The "lowest valence fallback" rule of §4.4.2 does **not** apply to d-block or f
 
 This guard exists because silent fallback on a metal centre has historically produced chemically wrong structures (missing ligands counted as implicit hydrogens).
 
-### 4.5 Formal Charge vs. Oxidation State
+#### 4.5 Formal Charge vs. Oxidation State
 
 `charge` and `oxidation-state` describe **different** properties and are tracked independently:
 
@@ -361,7 +363,7 @@ The formal charge is 0; the oxidation state is +6. Neither implies the other. `o
 
 If molecule-level `charge` is declared, only the sum of atom-level `charge` values (not `oxidation-state`) must match it.
 
-### 4.6 Explicit Lone Pairs
+#### 4.6 Explicit Lone Pairs
 
 For rigorous Lewis structure representation and electron-pushing mechanisms, `lone-pairs` declares the number of non-bonding electron pairs explicitly:
 
@@ -375,7 +377,7 @@ For rigorous Lewis structure representation and electron-pushing mechanisms, `lo
 
 When `lone-pairs` is omitted, parsers may infer lone pairs from the standard valence and bond count but need not render them. Declaring `lone-pairs` is the contract that a renderer or mechanism tool must display / track them.
 
-### 4.7 Generic and R-Group Atoms
+#### 4.7 Generic and R-Group Atoms
 
 For Markush structures, query templates, and generic scaffolds, CSML reserves a set of generic element symbols:
 
@@ -397,7 +399,7 @@ For Markush structures, query templates, and generic scaffolds, CSML reserves a 
 
 Generic atoms do not contribute to implicit-hydrogen calculations and do not carry a standard valence.
 
-### 4.8 Stereochemistry I: Point Chirality
+#### 4.8 Stereochemistry I: Point Chirality
 
 `chirality="R"` / `chirality="S"` describes **absolute** stereochemistry of a tetrahedral (or trigonal bipyramidal, octahedral) stereocenter, following CIP convention.
 
@@ -423,9 +425,9 @@ Axial and planar chirality are declared on bonds or rings and are covered in §5
 
 ---
 
-## 5. Basic Topology: Bonds
+### 5. Basic Topology: Bonds
 
-### 5.1 The `<bond>` Element
+#### 5.1 The `<bond>` Element
 
 A bond connects exactly two atoms.
 
@@ -444,7 +446,7 @@ A bond connects exactly two atoms.
 | `id`       | no       | Optional unique id for the bond itself                                                                     |
 | `display`  | no       | **Non-normative** rendering hint: `solid`, `dashed`. Parsers MAY ignore.                                   |
 
-#### Bond Order Notes
+##### Bond Order Notes
 
 - `aromatic` — Used inside ring systems to denote delocalised bonding (see §6).
 - `quadruple`, `quintuple` — Metal–metal multiple bonds (e.g. Re₂Cl₈²⁻, Cr–Cr quintuple bonds in certain transition-metal complexes).
@@ -454,7 +456,7 @@ A bond connects exactly two atoms.
 
 Hydrogen bonds have their own element, `<hydrogen-bond>` (§10.1), because they carry donor/acceptor/hydrogen triples that do not fit the two-atom `<bond>` model.
 
-### 5.2 `<bond-chain>` Shorthand
+#### 5.2 `<bond-chain>` Shorthand
 
 For linear chains, a shorthand avoids writing every single bond:
 
@@ -465,7 +467,7 @@ For linear chains, a shorthand avoids writing every single bond:
 
 This creates bonds between each consecutive pair.
 
-### 5.3 Multicenter and Haptic Bonds
+#### 5.3 Multicenter and Haptic Bonds
 
 Some bonding situations cannot be reduced to a pair of atoms — for example, η⁵-cyclopentadienyl coordination to iron in ferrocene, or a 3c-2e B–H–B bridge in diborane. CSML expresses these with `<multi-bond>`:
 
@@ -488,11 +490,11 @@ Some bonding situations cannot be reduced to a pair of atoms — for example, η
 
 \* `center` is required for haptic bonds; it is omitted for symmetric multicenter bonds (§5.3.2).
 
-#### 5.3.1 Haptic Bonds
+##### 5.3.1 Haptic Bonds
 
 A haptic bond $\eta^k$ couples one central atom to $k$ contiguous ligand atoms. The `center` attribute names the central atom; `ligands` lists the ligand atoms in their topological order around the haptic face.
 
-#### 5.3.2 Symmetric Multicenter Bonds
+##### 5.3.2 Symmetric Multicenter Bonds
 
 For symmetric 3-center bonds (e.g. B–H–B), omit `center` and list all participants in `ligands`:
 
@@ -500,7 +502,7 @@ For symmetric 3-center bonds (e.g. B–H–B), omit `center` and list all partic
 <multi-bond ligands="B1 H1 B2" order="any" id="3c2e_1" />
 ```
 
-#### 5.3.3 Valence Accounting for Multi-Bonds
+##### 5.3.3 Valence Accounting for Multi-Bonds
 
 `<multi-bond>` contributes to the implicit-hydrogen calculation of §4.4.1 as follows:
 
@@ -511,11 +513,11 @@ For symmetric 3-center bonds (e.g. B–H–B), omit `center` and list all partic
 
 Authors who rely on implicit hydrogens around atoms participating in `<multi-bond>` should verify the result. For metal centres, always declare `valence` and `implicit-h="0"` explicitly (§4.4.4).
 
-### 5.4 Stereochemistry II: Axial, Planar, and Rendering
+#### 5.4 Stereochemistry II: Axial, Planar, and Rendering
 
 Point chirality lives on atoms (§4.8). CSML also supports two additional classes of stereogenic element whose "centre" is not a single atom, plus the bond-level `stereo` descriptors.
 
-#### 5.4.1 Axial Chirality — `<chiral-axis>`
+##### 5.4.1 Axial Chirality — `<chiral-axis>`
 
 For **axial chirality** (atropisomerism, e.g. BINAP) the chiral element is a bond:
 
@@ -530,7 +532,7 @@ For **axial chirality** (atropisomerism, e.g. BINAP) the chiral element is a bon
 | `config`  | yes      | `Ra`, `Sa`, `M`, `P`, `either`, or `none` — axial CIP / helicity descriptor                   |
 | `id`      | no       | Optional unique id                                                                            |
 
-#### 5.4.2 Planar Chirality — `<chiral-plane>`
+##### 5.4.2 Planar Chirality — `<chiral-plane>`
 
 For **planar chirality** (e.g. substituted ferrocenes, \[2.2\]paracyclophanes) the chiral element is a reference plane:
 
@@ -548,7 +550,7 @@ For **planar chirality** (e.g. substituted ferrocenes, \[2.2\]paracyclophanes) t
 
 Both elements live at the same scope level as `<bond>` (they may appear inside any scope that contains the referenced elements).
 
-#### 5.4.3 Bond `stereo` Values
+##### 5.4.3 Bond `stereo` Values
 
 - `E`, `Z`, `cis`, `trans` — double-bond stereochemistry (CIP and geometric conventions).
 - `wedge`, `hatch` — single-bond stereochemistry (bond rises toward / away from the viewer). These are **stereochemical**, not purely presentational: a wedge in a CSML file encodes a defined 3D relationship, not just how to draw the line.
@@ -561,13 +563,13 @@ The `display` attribute is reserved for rendering hints that carry no chemical m
 
 ---
 
-# Part III: Higher-Order Structures (Chunks & Modifications)
+## Part III: Higher-Order Structures (Chunks & Modifications)
 
-## 6. Structural Units: Rings & Ring Systems
+### 6. Structural Units: Rings & Ring Systems
 
 Rings are first-class citizens in CSML to properly handle aromaticity and fused ring systems.
 
-### 6.1 The `<ring>` Element
+#### 6.1 The `<ring>` Element
 
 ```xml
 <ring id="benzene" size="6" aromatic="true">
@@ -587,7 +589,7 @@ Rings are first-class citizens in CSML to properly handle aromaticity and fused 
 | `aromatic` | no       | `true` / `false` — if true, all internal bonds become aromatic |
 | `name`     | no       | Common name for display                                        |
 
-### 6.2 Heterocyclic Rings
+#### 6.2 Heterocyclic Rings
 
 Rings with non-carbon members work identically:
 
@@ -603,7 +605,7 @@ Rings with non-carbon members work identically:
 </ring>
 ```
 
-### 6.3 Fused / Polycyclic Systems
+#### 6.3 Fused / Polycyclic Systems
 
 Fused rings share atoms between two or more rings.
 
@@ -624,11 +626,11 @@ Fused rings share atoms between two or more rings.
 
 **Necessity.** Fusion is automatically **inferred** from shared atom IDs between rings — parsers must detect this. `<fused-ring>` is therefore **optional**, but strongly recommended for documentation and for systems where the fusion pattern (ortho, peri, spiro, bridged) needs to be explicit. A `<fused-ring>` whose `shared-atoms` disagrees with what the parser inferred is a validation error.
 
-### 6.4 Aromaticity Rules & Explicit Assignments
+#### 6.4 Aromaticity Rules & Explicit Assignments
 
 When `aromatic="true"` on a simple monocyclic `<ring>` (e.g. benzene, pyridine), the parser **may infer** an aromatic bond between each consecutive member and close the ring from last to first. Individual `<bond>` elements between ring members override the inferred bonds (e.g. Kekulé structures) and take precedence.
 
-#### 6.4.1 Limits of Aromaticity Inference
+##### 6.4.1 Limits of Aromaticity Inference
 
 `aromatic="true"` is a blunt instrument. Parsers and authors MUST NOT rely on it for:
 
@@ -653,9 +655,9 @@ Example (explicit over inferred) for the inner aromatic pathway of porphine:
 
 ---
 
-## 7. Structural Units: Groups & Fragments
+### 7. Structural Units: Groups & Fragments
 
-### 7.1 `<group>` — Named Atom Groups & Anchors
+#### 7.1 `<group>` — Named Atom Groups & Anchors
 
 A group packages atoms and their internal bonds into a reusable unit. Think of it as a named substructure or functional group.
 
@@ -688,7 +690,7 @@ Roles:
 - `head`, `tail` — directional anchors consumed by `<repeat>`, `<copolymer>`, and `<sequence>` to wire up polymer backbones.
 - `crosslink` — attachment point for `<crosslink>` connections.
 
-### 7.2 `<group-ref>` — Instantiating a Group
+#### 7.2 `<group-ref>` — Instantiating a Group
 
 ```xml
 <!-- Attach a hydroxyl group: the anchor (O) bonds to C6 -->
@@ -704,7 +706,7 @@ Roles:
 
 Each `<group-ref>` creates an independent copy — atoms inside are scoped as `{ref-id}.{atom-id}` (e.g. `oh1.O`). See §2.4 for general scoping rules.
 
-### 7.3 `<fragment-library>` — Standardized Groups
+#### 7.3 `<fragment-library>` — Standardized Groups
 
 CSML reserves a set of **standard group identifiers** under the `std:` namespace. Compliant parsers must recognise these identifiers and expand them to fully specified groups. A parser may provide the expansions natively or load them from a reference library; the identifiers and formulas below are **normative**, but their structural expansion is provided informatively in `standard_library.csml`.
 
@@ -737,9 +739,9 @@ Authors may redefine a `std:` identifier locally by providing a full `<group>` w
 
 ---
 
-## 8. Structural Modification: Branches & Substituents
+### 8. Structural Modification: Branches & Substituents
 
-### 8.1 The `<branch>` Element
+#### 8.1 The `<branch>` Element
 
 A branch declares a side chain originating from an atom in the main structure.
 
@@ -762,7 +764,7 @@ A branch declares a side chain originating from an atom in the main structure.
 
 Allowed child elements: `<atom>`, `<atom-list>`, `<bond>`, `<bond-chain>`, `<ring>`, `<fused-ring>`, `<group-ref>`, `<repeat>`, `<copolymer>`, `<sequence>`, `<branch>` (nested), `<anchor>`. `<branch>` opens a new local scope (see §2.4).
 
-### 8.2 Positional Substitution (`<substituent>`)
+#### 8.2 Positional Substitution (`<substituent>`)
 
 For defining families of related compounds (e.g. all hexanol isomers at once):
 
@@ -791,7 +793,7 @@ The `targets` + `mode` pair is XML-native and validates cleanly against XSD:
 - Choice (regioisomers): `targets="C1 C2 C3"` with `mode="any-of"`
 - All positions (polysubstitution): `targets="C1 C2 C3"` with `mode="all"`
 
-### 8.3 Markush Multiplicity & Families
+#### 8.3 Markush Multiplicity & Families
 
 `occurrences` lets a single declaration cover families that vary in how *many* times the substituent is attached, not just *where*:
 
@@ -810,11 +812,11 @@ The `targets` + `mode` pair is XML-native and validates cleanly against XSD:
 
 ---
 
-# Part IV: Macromolecules & Bulk Systems
+## Part IV: Macromolecules & Bulk Systems
 
-## 9. Macromolecular Topology: Polymers & Crosslinks
+### 9. Macromolecular Topology: Polymers & Crosslinks
 
-### 9.1 The `<repeat>` Element
+#### 9.1 The `<repeat>` Element
 
 ```xml
 <repeat id="ru1" n="n" end-groups="open">
@@ -835,7 +837,7 @@ The `targets` + `mode` pair is XML-native and validates cleanly against XSD:
 | `end-groups` | no       | `open` (dangling bonds), `capped` (see §9.3), `cyclic` (ring closure, see §9.3) |
 | `label`      | no       | Display label (e.g. `"repeat unit A"`)                                          |
 
-### 9.2 Connectors and Linkage
+#### 9.2 Connectors and Linkage
 
 The `<connector>` defines which atoms in the repeat unit form bonds to the next copy and the previous copy.
 
@@ -848,9 +850,9 @@ The `<connector>` defines which atoms in the repeat unit form bonds to the next 
 
 When expanded, the parser creates a bond from `unit[i].tail` → `unit[i+1].head`.
 
-### 9.3 End Groups (`<cap>`, Open, Cyclic)
+#### 9.3 End Groups (`<cap>`, Open, Cyclic)
 
-#### 9.3.1 Capped
+##### 9.3.1 Capped
 
 ```xml
 <repeat id="ru1" n="n" end-groups="capped">
@@ -870,7 +872,7 @@ When expanded, the parser creates a bond from `unit[i].tail` → `unit[i+1].head
 </repeat>
 ```
 
-#### 9.3.2 Cyclic
+##### 9.3.2 Cyclic
 
 When `end-groups="cyclic"`, the `<connector>`'s `tail` of the final unit is bonded to the `head` of the first unit instead of terminating. This expresses macrocyclic repeat structures (crown ethers, cyclic peptides, cyclodextrins):
 
@@ -890,7 +892,7 @@ When `end-groups="cyclic"`, the `<connector>`'s `tail` of the final unit is bond
 
 A cyclic repeat with a symbolic `n` is permitted and describes a homologous series of macrocycles.
 
-### 9.4 Tacticity and Configuration Constraints
+#### 9.4 Tacticity and Configuration Constraints
 
 For vinyl polymers (polypropylene, polystyrene), `<configuration>` declares the stereochemical regularity of the repeat unit along the backbone:
 
@@ -927,7 +929,7 @@ Semantics:
 
 Declaring `<configuration>` without `target` is a validation error in CSML 0.2.
 
-### 9.5 `<sequence>` and `<segment>` — Block Composition
+#### 9.5 `<sequence>` and `<segment>` — Block Composition
 
 `<sequence>` concatenates multiple repeats in a defined order. Each `<segment>` names one component.
 
@@ -965,11 +967,11 @@ Declaring `<configuration>` without `target` is a validation error in CSML 0.2.
 
 A `<segment>` opens its own local scope, addressable as `{sequence-id}.{segment-id}.{atom-id}` when `id` is declared.
 
-#### 9.5.1 Cyclic Sequences
+##### 9.5.1 Cyclic Sequences
 
 When `end-groups="cyclic"` on `<sequence>`, the tail of the **last segment**'s last expanded unit is bonded to the head of the **first segment**'s first expanded unit. The bond uses the ring-closing segment's outgoing `<connector>` on the tail side and the starting segment's incoming `<connector>` on the head side — the same mechanism `<repeat end-groups="cyclic">` uses internally (§9.3.2), just operating one level up across segment boundaries. Both adjoining connectors must agree on `bond-order`; disagreement is a validation error.
 
-### 9.6 `<copolymer>` — Statistical and Alternating Patterns
+#### 9.6 `<copolymer>` — Statistical and Alternating Patterns
 
 `<copolymer>` describes a polymer whose backbone is made of two or more different monomers. In the common case, it appears at **molecule level** as a sibling of `<repeat>` (not nested inside one) — the copolymer is itself the repeating pattern and carries its own `n` and `end-groups`:
 
@@ -1010,7 +1012,7 @@ When `end-groups="cyclic"` on `<sequence>`, the tail of the **last segment**'s l
 
 The `ratio` attribute is restricted to the two-field form `p:q` where `p` and `q` are either numeric literals or (in the second field only) the unit-complement shorthand `1-name` as defined in §2.5.2. More complex compositions must be pre-evaluated by the host software.
 
-### 9.7 Polymer Crosslinking & Link Density
+#### 9.7 Polymer Crosslinking & Link Density
 
 For crosslinked polymers (thermosets, vulcanised rubber), `<crosslink>` connects two atoms that may live in different branches, repeat instances, or chains:
 
@@ -1045,9 +1047,9 @@ Distinct index variables (`_i`, `_j`) in the same crosslink denote independent, 
 
 ---
 
-## 10. Non-Covalent & Bulk Systems
+### 10. Non-Covalent & Bulk Systems
 
-### 10.1 Hydrogen Bonds (`<hydrogen-bond>`)
+#### 10.1 Hydrogen Bonds (`<hydrogen-bond>`)
 
 Hydrogen bonds are non-covalent interactions and are modelled separately from `<bond>`: they carry three participants (donor heavy atom, bridging hydrogen, acceptor) and typically cross molecule or scope boundaries — e.g. between strands of a polyamide sheet. In canonical order (§14.1) they are grouped with `<crosslink>` as cross-scope relations, not with the intra-scope bond family.
 
@@ -1067,7 +1069,7 @@ Hydrogen bonds are non-covalent interactions and are modelled separately from `<
 
 Like `<crosslink>` (§9.7), endpoint references use the fully-qualified dot-notation form (§2.4) when they reach across `<molecule>`, `<group-ref>`, `<repeat>`, or `<branch>` boundaries, and `<hydrogen-bond>` must be declared at the **lowest common ancestor scope** of its three endpoints.
 
-### 10.2 Mixtures & Formulations (`<mixture>`)
+#### 10.2 Mixtures & Formulations (`<mixture>`)
 
 `<mixture>` is a top-level sibling of `<molecule>` and `<reaction>` for non-covalently bound systems: solutions, blends, alloys, formulations. A mixture does **not** define a new molecular graph; it references existing molecules and assigns composition fractions.
 
@@ -1104,13 +1106,13 @@ Mixtures may reference other mixtures (nested formulations, e.g. a buffer added 
 
 ---
 
-# Part V: Spatial Layout & Transformations
+## Part V: Spatial Layout & Transformations
 
-## 11. Geometry & Spatial Orientation
+### 11. Geometry & Spatial Orientation
 
 Geometry is **optional** and layered on top of topology. A CSML file is valid without any geometry — it then describes connectivity only (a molecular graph).
 
-### 11.1 Precedence Between Topology and Geometry
+#### 11.1 Precedence Between Topology and Geometry
 
 When topological stereodescriptors (e.g. `stereo="E"` on a double bond, `chirality="R"` on an atom) appear alongside explicit 3D `<coordinates>` that would imply a different configuration, CSML resolves the conflict as follows:
 
@@ -1120,7 +1122,7 @@ When topological stereodescriptors (e.g. `stereo="E"` on a double bond, `chirali
 
 If only topology is given, renderers may generate conforming coordinates. If only geometry is given, parsers should infer stereodescriptors from the coordinates and populate them in-memory.
 
-### 11.2 `<coordinates>` — Explicit Positioning
+#### 11.2 `<coordinates>` — Explicit Positioning
 
 Absolute 2D or 3D positions for atoms.
 
@@ -1144,31 +1146,31 @@ Units default to Ångströms. Override with `units="pm"` or `units="nm"`.
 
 `<coordinates>` may appear directly inside `<molecule>` or — preferred for readability when combined with other constraints — nested inside `<geometry>` (§11.3).
 
-### 11.3 `<geometry>` Constraints
+#### 11.3 `<geometry>` Constraints
 
 Multiple geometry statements can be grouped for readability. `<geometry>` acts as a container for any combination of `<coordinates>`, `<angle>`, `<torsion>`, and `<length>`.
 
-#### 11.3.1 `<angle>` — Bond Angles
+##### 11.3.1 `<angle>` — Bond Angles
 
 ```xml
 <!-- The C1–C2–C3 angle is 112° -->
 <angle atoms="C1 C2 C3" value="112.0" unit="deg" />
 ```
 
-#### 11.3.2 `<torsion>` — Dihedral Angles
+##### 11.3.2 `<torsion>` — Dihedral Angles
 
 ```xml
 <!-- C1–C2–C3–C4 dihedral is 180° (anti conformation) -->
 <torsion atoms="C1 C2 C3 C4" value="180.0" unit="deg" />
 ```
 
-#### 11.3.3 `<length>` — Bond Lengths
+##### 11.3.3 `<length>` — Bond Lengths
 
 ```xml
 <length atoms="C1 C2" value="1.54" unit="angstrom" />
 ```
 
-#### 11.3.4 Combined Block
+##### 11.3.4 Combined Block
 
 ```xml
 <geometry>
@@ -1184,9 +1186,9 @@ Multiple geometry statements can be grouped for readability. `<geometry>` acts a
 
 ---
 
-## 12. Reactions & Transformations
+### 12. Reactions & Transformations
 
-### 12.1 The `<reaction>` Element
+#### 12.1 The `<reaction>` Element
 
 `<reaction>` is a top-level sibling of `<molecule>` and `<mixture>`.
 
@@ -1212,7 +1214,7 @@ Multiple geometry statements can be grouped for readability. `<geometry>` acts a
 | `type`                    | no       | Free-text reaction class (`condensation`, `SN2`, `Diels-Alder`, …)          |
 | `name`                    | no       | Human-readable name                                                         |
 
-### 12.2 Reactants, Products, and Byproducts
+#### 12.2 Reactants, Products, and Byproducts
 
 Each `<reactant>`, `<product>`, and `<byproduct>` contains either a single `ref` attribute **or** a single inline `<molecule>` child — never both.
 
@@ -1224,7 +1226,7 @@ Each `<reactant>`, `<product>`, and `<byproduct>` contains either a single `ref`
 
 Each may carry an optional `stoichiometry` attribute (positive float, default `1`) and an optional `id`.
 
-### 12.3 Reagents, Catalysts, and Solvents
+#### 12.3 Reagents, Catalysts, and Solvents
 
 Three additional participant classes capture substances that are present but are not the primary atoms-balanced reactants:
 
@@ -1257,7 +1259,7 @@ Example:
 </reaction>
 ```
 
-### 12.4 Reaction Conditions & Yields
+#### 12.4 Reaction Conditions & Yields
 
 `<conditions>` captures the environmental parameters of the reaction.
 
@@ -1275,7 +1277,7 @@ Example:
 
 All attributes are optional; declare only those that are known. A `<conditions>` element with a range (e.g. a temperature ramp) may be represented by nesting two or more `<conditions>` elements with an optional `stage` attribute — this is a v0.2 provisional extension and may change in future versions.
 
-### 12.5 Atom Mapping & Stereochemical Tracking
+#### 12.5 Atom Mapping & Stereochemical Tracking
 
 To track how specific atoms move from reactants to products, annotate atoms with the `map` attribute (§4.1). Atoms that share the same `map` value across reactants and products are considered the same atom before and after the reaction:
 
@@ -1316,7 +1318,7 @@ To track how specific atoms move from reactants to products, annotate atoms with
 
 Map values are integers unique within the reaction; they have no meaning outside the containing `<reaction>`.
 
-#### 12.5.1 Stereochemical Change
+##### 12.5.1 Stereochemical Change
 
 When a mapped reacting atom is a stereocentre whose configuration is relevant to the reaction mechanism (S_N2 inversion, S_N1 racemisation, retention in neighbouring-group participation, etc.), declare the change explicitly with `<stereo-change>`:
 
@@ -1338,14 +1340,14 @@ When a mapped reacting atom is a stereocentre whose configuration is relevant to
 </reaction>
 ```
 
-| Attribute on `<stereo-change>` | Required | Description                                                                                                         |
-|--------------------------------|----------|---------------------------------------------------------------------------------------------------------------------|
-| `map`                          | yes      | Atom-map index identifying the mapped stereocentre pair                                                             |
-| `mode`                         | yes      | `retention`, `inversion`, `racemisation`, `epimerisation`, `defined` (see below)                                    |
+| Attribute on `<stereo-change>` | Required | Description                                                                                                           |
+|--------------------------------|----------|-----------------------------------------------------------------------------------------------------------------------|
+| `map`                          | yes      | Atom-map index identifying the mapped stereocentre pair                                                               |
+| `mode`                         | yes      | `retention`, `inversion`, `racemisation`, `epimerisation`, `defined` (see below)                                      |
 | `from-config`                  | no       | Explicit starting descriptor (`R`, `S`, `Ra`, `Sa`, `Rp`, `Sp`, ...). Overrides the reactant-side atom's `chirality`. |
-| `to-config`                    | no       | Explicit ending descriptor, similarly overriding the product side                                                   |
-| `element`                      | no       | `point` (default), `axial`, `planar` - which stereogenic element the change describes                               |
-| `id`                           | no       | Unique id                                                                                                           |
+| `to-config`                    | no       | Explicit ending descriptor, similarly overriding the product side                                                     |
+| `element`                      | no       | `point` (default), `axial`, `planar` - which stereogenic element the change describes                                 |
+| `id`                           | no       | Unique id                                                                                                             |
 
 `mode` semantics:
 
@@ -1361,11 +1363,11 @@ If the mapped reactant and product atoms carry explicit `chirality` attributes, 
 
 ---
 
-# Part VI: Meta-Rules
+## Part VI: Meta-Rules
 
-## 13. Parser Behavior
+### 13. Parser Behavior
 
-### 13.1 Compliance Profiles & Versioning
+#### 13.1 Compliance Profiles & Versioning
 
 A single profile flag on the root element declares which feature groups a document uses, so parsers can reject early when they don't support a requested capability.
 
@@ -1375,7 +1377,7 @@ A single profile flag on the root element declares which feature groups a docume
 </csml>
 ```
 
-#### 13.1.1 Profiles
+##### 13.1.1 Profiles
 
 | Profile    | Includes                                                                                                |
 |------------|---------------------------------------------------------------------------------------------------------|
@@ -1386,7 +1388,7 @@ A single profile flag on the root element declares which feature groups a docume
 
 A parser advertises which profiles it supports. When it encounters a document whose `profile` attribute lists features it does not support, it must refuse to parse and report the offending profile. A parser may claim "CSML 0.2 Core compliance" while completely ignoring `<reaction>`, `<repeat>`, and `<copolymer>` blocks — documents that rely on those features must declare a matching `profile` and will be rejected.
 
-#### 13.1.2 Version Handling
+##### 13.1.2 Version Handling
 
 The `version` attribute on `<csml>` is a two-component string (`major.minor`):
 
@@ -1394,21 +1396,21 @@ The `version` attribute on `<csml>` is a two-component string (`major.minor`):
 - **Minor version higher than parser's** — The parser **should** attempt to parse, emit a warning, and skip any elements or attributes it does not recognise. It must not fail on unknown content in namespaced extensions.
 - **Minor version lower than parser's** — Always accept. Newer parsers MUST remain backward-compatible within a major version.
 
-### 13.2 Unknown Content Handling
+#### 13.2 Unknown Content Handling
 
 Within the default (unnamespaced) part of a document, unknown elements or attributes are an error at profiles `core`, `polymer`, and `reaction`. Within namespaced extensions (§2.3), unknown content must be skipped silently.
 
 ---
 
-## 14. Canonicalization & Data Hashing
+### 14. Canonicalization & Data Hashing
 
 For deterministic hashing, diffing, and content-addressable storage, CSML defines a canonical form.
 
-### 14.1 Strict Element Order
+#### 14.1 Strict Element Order
 
 A **container scope** is any element that holds structural children: `<csml>`, `<molecule>`, `<mixture>`, `<group>`, `<group-ref>`, `<repeat>`, `<copolymer>`, `<sequence>`, `<segment>`, `<branch>`, `<cap>`, `<reaction>`, `<reactant>`, `<product>`, and `<byproduct>`.
 
-#### 14.1.1 Root Scope (`<csml>`)
+##### 14.1.1 Root Scope (`<csml>`)
 
 Children of `<csml>` appear in this order:
 
@@ -1419,24 +1421,24 @@ Children of `<csml>` appear in this order:
 5. `<reaction>` (one or more)
 6. Extension-namespaced siblings (e.g. `cryst:unit-cell`), sorted lexicographically by qualified name
 
-#### 14.1.2 Molecule and Structural Scopes
+##### 14.1.2 Molecule and Structural Scopes
 
 Within `<molecule>`, `<group>`, `<repeat>`, `<branch>`, `<copolymer>`, `<sequence>`, `<segment>`, and `<cap>`, children appear in this order. **Nodes are declared before edges**: every element on which an `id` can be defined appears before any element that references that `id` by a `from` / `to` / similar attribute.
 
 1. `<meta>` (molecule scope only, if present)
 2. `<variables>` (local scope)
 3. Node declarations (atoms and atom-like constructs):
-1. `<atom>` and `<atom-list>`
-2. `<ring>`
-3. `<group>` (local definitions)
-4. `<group-ref>`, `<substituent>`
-5. `<branch>`
-6. `<repeat>`, `<copolymer>`, `<sequence>`
+    1. `<atom>` and `<atom-list>`
+    2. `<ring>`
+    3. `<group>` (local definitions)
+    4. `<group-ref>`, `<substituent>`
+    5. `<branch>`
+    6. `<repeat>`, `<copolymer>`, `<sequence>`
 4. Edge declarations (elements whose operands are ids declared above):
-1. `<bond>`, `<bond-chain>`, `<multi-bond>`
-2. `<fused-ring>`
-3. `<connector>`
-4. `<anchor>`
+    1. `<bond>`, `<bond-chain>`, `<multi-bond>`
+    2. `<fused-ring>`
+    3. `<connector>`
+    4. `<anchor>`
 5. `<geometry>` (or standalone `<coordinates>`, `<angle>`, `<torsion>`, `<length>`)
 6. `<configuration>`
 7. `<cap>` (inside `<repeat>`/`<copolymer>`)
@@ -1445,14 +1447,14 @@ Within `<molecule>`, `<group>`, `<repeat>`, `<branch>`, `<copolymer>`, `<sequenc
 
 Rationale: a parser can resolve every `id` reference in a single forward pass, because the referenced element has already been declared. Nodes (atoms, rings, groups, repeats, branches) come before edges (bonds, fusions, connectors, crosslinks) that would otherwise forward-reference an id the parser has not yet seen.
 
-#### 14.1.3 `<group-ref>` Scope
+##### 14.1.3 `<group-ref>` Scope
 
 Children of `<group-ref>` appear in this order:
 
 1. `<attach>` (in the order `anchor` attributes are declared in the referenced `<group>`; ties broken lexicographically by `anchor`)
 2. Structural overrides or local declarations, as in §14.1.2
 
-#### 14.1.4 Reaction Scope (`<reaction>`)
+##### 14.1.4 Reaction Scope (`<reaction>`)
 
 Children of `<reaction>` appear in this order:
 
@@ -1466,22 +1468,22 @@ Children of `<reaction>` appear in this order:
 
 Each `<reactant>`, `<product>`, and `<byproduct>` contains either a single `ref` attribute **or** a single inline `<molecule>` child — never both. When inline, the `<molecule>` is the sole structural child and follows §14.1.2 internally.
 
-#### 14.1.5 Mixture Scope (`<mixture>`)
+##### 14.1.5 Mixture Scope (`<mixture>`)
 
 Children of `<mixture>` appear in this order:
 
 1. `<meta>` (if present)
 2. `<component>` (in authored order)
 
-#### 14.1.6 Cross-Scope Placement
+##### 14.1.6 Cross-Scope Placement
 
 `<crosslink>` (§9.7) and `<hydrogen-bond>` (§10.1) must be declared at the **lowest common ancestor scope** of their endpoints. In practice this is almost always the root `<molecule>` — nesting them inside a `<branch>` or `<repeat>` where one endpoint is not visible is a validation error.
 
-### 14.2 Attribute Order
+#### 14.2 Attribute Order
 
 Attributes on any element appear in the order listed in the element's specification table. Unknown-namespace attributes appear after all core attributes, sorted lexicographically by qualified name.
 
-### 14.3 Whitespace and ID Normalization
+#### 14.3 Whitespace and ID Normalization
 
 - One element per line at any nesting level.
 - Indentation: two spaces per level. No tabs.
@@ -1493,7 +1495,7 @@ A canonical-form file hashes deterministically under SHA-256 and supports line-l
 
 ---
 
-## Appendix A: CSML vs. Existing Formats
+### Appendix A: CSML vs. Existing Formats
 
 | Feature                   | CSML | SMILES | MOL/SDF | CML | InChI |
 |---------------------------|------|--------|---------|-----|-------|
@@ -1513,7 +1515,7 @@ A canonical-form file hashes deterministically under SHA-256 and supports line-l
 
 ---
 
-## Appendix B: Standard Valence Reference
+### Appendix B: Standard Valence Reference
 
 See §4.4.3. This appendix is reserved for future expansion with d-block and f-block coordination-number tables.
 
